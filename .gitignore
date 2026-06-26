@@ -1,0 +1,34 @@
+# ───────────────────────────────────────────────────────────────
+# Local-only files — kept out of the repo by location.
+# Keep every comment on its OWN line; an inline comment silently
+# breaks the ignore pattern it shares a line with.
+# ───────────────────────────────────────────────────────────────
+
+# Project-private working notes (local to each developer)
+rules_project.md
+STATE.md
+# User data — saved config, captures, anything irreplaceable
+/data/
+# Deploy tooling
+/deploy/
+# Local tooling / editor config
+.claude/
+
+# ───────────────────────────────────────────────────────────────
+# Build / dependency artifacts (regenerable)
+# ───────────────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+*.spec
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.exe
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.tmp.*
+.bobcommit

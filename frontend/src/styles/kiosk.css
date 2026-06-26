@@ -1,0 +1,174 @@
+/* Kiosk display layout. Fullscreen, centered, no chrome, no cursor. */
+.os-kiosk {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: none;
+}
+
+/* Mode: Text — logo + headline + line */
+.mode-text {
+  text-align: center;
+  padding: 4vmin;
+  max-width: 90vw;
+}
+.mode-text__logo {
+  width: min(40vmin, 320px);
+  height: auto;
+  margin-bottom: 4vmin;
+}
+.mode-text__headline {
+  font-size: clamp(2rem, 8vmin, 6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  margin: 0 0 2vmin;
+  color: var(--os-text);
+}
+.mode-text__subtext {
+  font-size: clamp(1rem, 3.2vmin, 2rem);
+  font-weight: 400;
+  color: var(--os-muted);
+  margin: 0;
+}
+
+/* Mode: Images — single or slideshow, both full-bleed */
+.mode-images {
+  text-align: center;
+  padding: 6vmin;
+}
+.mode-images__hint {
+  font-size: clamp(1rem, 3vmin, 1.8rem);
+  color: var(--os-muted);
+  line-height: 1.6;
+}
+.mode-images--full {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+}
+.mode-images__img {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  display: block;
+}
+
+/* Mode: Stand By — black standby screen (overrides the theme bg) */
+.mode-stop {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5vmin;
+}
+.mode-stop__status {
+  margin: 0;
+  font-size: clamp(1rem, 3vmin, 1.8rem);
+  color: #777;
+}
+.mode-stop__status--up {
+  color: #5fb87a;
+}
+.mode-stop__status--down {
+  color: #d06363;
+}
+.mode-stop__off {
+  margin: 0;
+  font-size: clamp(0.85rem, 2.2vmin, 1.3rem);
+  color: #555;
+  letter-spacing: 0.04em;
+}
+
+/* ── Widgets — glass overlay on top of any mode ───────────────────────── */
+.widget-layer {
+  position: fixed;
+  inset: 4vmin;
+  pointer-events: none;
+}
+.widget-slot {
+  position: absolute;
+}
+.widget-slot.pos-top-left {
+  top: 4vmin;
+  left: 4vmin;
+}
+.widget-slot.pos-top-right {
+  top: 4vmin;
+  right: 4vmin;
+}
+.widget-slot.pos-bottom-left {
+  bottom: 4vmin;
+  left: 4vmin;
+}
+.widget-slot.pos-bottom-right {
+  bottom: 4vmin;
+  right: 4vmin;
+}
+.widget-slot.pos-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* The frosted-glass card */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.widget {
+  padding: clamp(14px, 2.4vmin, 26px) clamp(20px, 3.4vmin, 40px);
+  text-align: center;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Clock */
+.widget-clock__time {
+  font-size: clamp(2.4rem, 7vmin, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.widget-clock__date {
+  font-size: clamp(0.85rem, 1.9vmin, 1.4rem);
+  font-weight: 400;
+  opacity: 0.88;
+  margin-top: 0.6vmin;
+}
+
+/* Calendar */
+.widget-calendar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2vmin;
+}
+.widget-calendar__monthyear {
+  font-size: clamp(0.85rem, 1.9vmin, 1.4rem);
+  font-weight: 600;
+  opacity: 0.9;
+}
+.widget-calendar__day {
+  font-size: clamp(2.8rem, 8vmin, 6rem);
+  font-weight: 800;
+  line-height: 1;
+}
+.widget-calendar__weekday {
+  font-size: clamp(0.85rem, 1.9vmin, 1.4rem);
+  font-weight: 400;
+  opacity: 0.82;
+  letter-spacing: 0.08em;
+}
+

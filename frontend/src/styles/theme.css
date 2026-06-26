@@ -1,0 +1,59 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   OpenSign visual theme — lifted from OpenVoice (localtts), renamed --os-*.
+   A theme is a class on the root .os-root element: .theme-<id>.
+
+   This is the LOOK, not the display behavior. Display behavior lives in MODES
+   (static / cycle / integration …) — see src/modes/. We ship HonedEdge as the
+   house style; OpenVoice came along with the lift as a second option.
+
+   Add a theme = a .theme-<id> block setting the --os-* palette tokens.
+   `.mode-light` on the root flips surfaces + text (orthogonal to theme).
+   ───────────────────────────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&display=swap");
+
+.os-root {
+  --os-font: "Exo 2", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--os-bg);
+  color: var(--os-text);
+  font-family: var(--os-font);
+}
+
+/* ===================== HonedEdge (default) — warm dark olive + gold ========== */
+.theme-honededge {
+  --os-bg: #1a1d16;
+  --os-text: #ece9df;
+  --os-accent: #c79a4a;   /* warm gold (HonedEdge primary) */
+  --os-accent-2: #9bb37a; /* olive-light (HonedEdge brand green) */
+  --os-muted: #cfccbe;
+  --os-surface: #22251b;
+  --os-border: #353a28;
+  --os-on-accent: #211d10;
+}
+
+/* ===================== OpenVoice — dark slate + teal ======================== */
+.theme-openvoice {
+  --os-bg: #0f1419;
+  --os-text: #e7e9ee;
+  --os-accent: #2dd4bf;
+  --os-accent-2: #38bdf8;
+  --os-muted: #c4cad4;
+  --os-surface: #161c24;
+  --os-border: #232c38;
+  --os-on-accent: #06231f;
+}
+
+/* ===================== Light mode (orthogonal flip) ========================= */
+.os-root.mode-light.theme-honededge {
+  --os-bg: #f3f1e8;
+  --os-text: #2a2c22;
+  --os-muted: #5f5e50;
+  --os-surface: #fbfaf3;
+  --os-border: #ddd7c6;
+}
+.os-root.mode-light.theme-openvoice {
+  --os-bg: #eef1f5;
+  --os-text: #1b2430;
+  --os-muted: #54606f;
+  --os-surface: #ffffff;
+  --os-border: #d6dde6;
+}
