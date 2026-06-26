@@ -208,3 +208,27 @@
   animation: os-blink 1s infinite;
 }
 
+/* Giving (QR) */
+.widget-giving {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vmin;
+}
+.widget-giving__label {
+  font-size: clamp(0.8rem, 1.7vmin, 1.3rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  text-align: center;
+}
+.widget-giving__qr {
+  width: clamp(90px, 16vmin, 200px);
+  height: clamp(90px, 16vmin, 200px);
+  object-fit: contain;
+  background: #fff;
+  padding: 1.4vmin;
+  border-radius: 10px;
+}
+

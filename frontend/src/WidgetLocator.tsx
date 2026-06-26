@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import type { KioskConfig, CountdownConfig, WidgetSize } from './config'
+import { pickFile, mediaSrc } from './api'
+import type {
+  KioskConfig,
+  CountdownConfig,
+  GivingConfig,
+  WidgetSize,
+} from './config'
 import { slotStyle } from './Widgets'
 
 // Snap grid is orientation-aware: 15 points either way (5×3 landscape, 3×5
@@ -12,12 +18,13 @@ const edges = (n: number) =>
 const nearest = (v: number, points: number[]) =>
   points.reduce((best, p) => (Math.abs(p - v) < Math.abs(best - v) ? p : best), points[0])
 
-type Which = 'clock' | 'calendar' | 'countdown'
-const ALL: Which[] = ['clock', 'calendar', 'countdown']
+type Which = 'clock' | 'calendar' | 'countdown' | 'giving'
+const ALL: Which[] = ['clock', 'calendar', 'countdown', 'giving']
 const LABEL: Record<Which, string> = {
   clock: 'Clock',
   calendar: 'Calendar',
   countdown: 'Countdown',
+  giving: 'Giving',
 }
 const SIZES: { id: WidgetSize; label: string }[] = [
   { id: 'sm', label: 'S' },
@@ -114,7 +121,7 @@ export default function WidgetLocator({
     })
 
   // Merge a partial into one widget's config (size, and countdown's label/target).
-  const patchWidget = (which: Which, p: Partial<CountdownConfig>) =>
+  const patchWidget = (which: Which, p: Partial<CountdownConfig & GivingConfig>) =>
     patch({
       widgets: {
         ...config.widgets,
@@ -249,6 +256,36 @@ export default function WidgetLocator({
                       value={config.widgets.countdown.target}
                       onChange={(e) =>
                         patchWidget('countdown', { target: e.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+              {w === 'giving' && (
+                <div className="os-wset__fields">
+                  <button
+                    className="os-pick-btn"
+                    onClick={async () => {
+                      const p = await pickFile()
+                      if (p) patchWidget('giving', { image: p })
+                    }}
+                  >
+                    Pick QR image…
+                  </button>
+                  {config.widgets.giving.image && (
+                    <img
+                      className="os-preview"
+                      src={mediaSrc(config.widgets.giving.image)}
+                      alt=""
+                    />
+                  )}
+                  <label className="os-field">
+                    <span>Caption</span>
+                    <input
+                      value={config.widgets.giving.label}
+                      placeholder="e.g. SCAN TO GIVE"
+                      onChange={(e) =>
+                        patchWidget('giving', { label: e.target.value })
                       }
                     />
                   </label>

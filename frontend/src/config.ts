@@ -50,10 +50,19 @@ export interface CountdownConfig extends WidgetConfig {
   target: string
 }
 
+/** The giving widget shows a QR image (served in place, like the Images mode) + a caption. */
+export interface GivingConfig extends WidgetConfig {
+  /** path to the QR image on the display machine, resolved by the backend. */
+  image: string
+  /** caption shown with the code, e.g. "SCAN TO GIVE". */
+  label: string
+}
+
 export interface WidgetsConfig {
   clock: WidgetConfig
   calendar: WidgetConfig
   countdown: CountdownConfig
+  giving: GivingConfig
 }
 
 export interface KioskConfig {
@@ -98,6 +107,14 @@ export const DEFAULT_CONFIG: KioskConfig = {
       size: 'lg',
       label: 'TIME UNTIL WORSHIP',
       target: '10:45',
+    },
+    giving: {
+      enabled: false,
+      x: 0,
+      y: 100,
+      size: 'md',
+      image: '',
+      label: 'SCAN TO GIVE',
     },
   },
 }

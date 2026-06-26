@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { mediaSrc } from './api'
 import type { KioskConfig, WidgetSize } from './config'
 
 // Predefined widget scales — the admin sets one of these per widget.
@@ -107,6 +108,15 @@ function CountdownWidget({
   )
 }
 
+function GivingWidget({ image, label }: { image: string; label: string }) {
+  return (
+    <div className="glass widget widget-giving">
+      {label && <div className="widget-giving__label">{label}</div>}
+      {image && <img className="widget-giving__qr" src={mediaSrc(image)} alt="" />}
+    </div>
+  )
+}
+
 // Position a widget by its x/y%. The translate(-x%, -y%) keeps it fully on-screen
 // at any position (anchor slides from top-left at 0 to bottom-right at 100), and
 // the optional scale grows it AWAY from that anchor, so it never spills off the
@@ -132,7 +142,7 @@ export default function Widgets({
   config: KioskConfig
   onCountdownExpire?: () => void
 }) {
-  const { clock, calendar, countdown } = config.widgets
+  const { clock, calendar, countdown, giving } = config.widgets
   return (
     <div className="widget-layer">
       {clock.enabled && (
@@ -158,6 +168,14 @@ export default function Widgets({
             target={countdown.target}
             onExpire={onCountdownExpire}
           />
+        </div>
+      )}
+      {giving.enabled && (
+        <div
+          className="widget-slot"
+          style={slotStyle(giving, SIZE_SCALE[giving.size])}
+        >
+          <GivingWidget image={giving.image} label={giving.label} />
         </div>
       )}
     </div>

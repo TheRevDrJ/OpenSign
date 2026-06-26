@@ -27,6 +27,14 @@ DEFAULT_CONFIG = {
             "label": "TIME UNTIL WORSHIP",
             "target": "10:45",
         },
+        "giving": {
+            "enabled": False,
+            "x": 0,
+            "y": 100,
+            "size": "md",
+            "image": "",
+            "label": "SCAN TO GIVE",
+        },
     },
 }
 
