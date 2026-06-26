@@ -42,6 +42,32 @@ export default function Kiosk() {
     }
   }, [])
 
+  // Keep the display awake while showing, if enabled. The Screen Wake Lock
+  // auto-releases when the page is hidden, so re-acquire on visibility change.
+  // Needs a secure context (localhost / https) — elsewhere it just no-ops.
+  useEffect(() => {
+    if (!config.keepAwake || !('wakeLock' in navigator)) return
+    let sentinel: WakeLockSentinel | null = null
+    let active = true
+    const acquire = async () => {
+      try {
+        sentinel = await navigator.wakeLock.request('screen')
+      } catch {
+        // unavailable (insecure context / denied) — no-op
+      }
+    }
+    const onVisible = () => {
+      if (active && document.visibilityState === 'visible') acquire()
+    }
+    acquire()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      active = false
+      document.removeEventListener('visibilitychange', onVisible)
+      sentinel?.release().catch(() => {})
+    }
+  }, [config.keepAwake])
+
   const Mode = getMode(config.mode).component
   const rootClass = `os-root os-kiosk theme-${config.theme}${config.light ? ' mode-light' : ''}`
 

@@ -10,6 +10,7 @@ DEFAULT_CONFIG = {
     "theme": "honededge",
     "light": False,
     "orientation": "landscape",
+    "keepAwake": False,
     "text": {
         "headline": "The Honed Edge",
         "subtext": "Wisdom helps one to succeed. — Ecclesiastes 10:10",

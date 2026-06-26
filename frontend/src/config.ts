@@ -70,6 +70,8 @@ export interface KioskConfig {
   theme: ThemeId
   light: boolean
   orientation: Orientation
+  /** hold a Screen Wake Lock on the kiosk so the display never sleeps. */
+  keepAwake: boolean
   text: TextConfig
   images: ImagesConfig
   widgets: WidgetsConfig
@@ -85,6 +87,7 @@ export const DEFAULT_CONFIG: KioskConfig = {
   theme: 'honededge',
   light: false,
   orientation: 'landscape',
+  keepAwake: false,
   text: {
     headline: 'The Honed Edge',
     subtext: 'Wisdom helps one to succeed. — Ecclesiastes 10:10',
