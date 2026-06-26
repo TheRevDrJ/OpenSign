@@ -6,7 +6,7 @@ export type ModeId = 'text' | 'images' | 'stop'
 export type ImagesKind = 'single' | 'slideshow'
 /** CSS object-fit: contain = letterbox, cover = fill+crop, fill = stretch. */
 export type ImagesFit = 'contain' | 'cover' | 'fill'
-export type ThemeId = 'honededge' | 'openvoice'
+export type ThemeId = 'honededge' | 'eggshell' | 'seafoam'
 /** Display orientation — drives the admin widget-locator's shape (set manually,
  *  so a portrait wall can be laid out from a landscape desk). */
 export type Orientation = 'landscape' | 'portrait'
@@ -79,7 +79,8 @@ export interface KioskConfig {
 
 export const THEMES: { id: ThemeId; label: string }[] = [
   { id: 'honededge', label: 'HonedEdge' },
-  { id: 'openvoice', label: 'OpenVoice' },
+  { id: 'eggshell', label: 'Eggshell' },
+  { id: 'seafoam', label: 'Seafoam' },
 ]
 
 export const DEFAULT_CONFIG: KioskConfig = {
