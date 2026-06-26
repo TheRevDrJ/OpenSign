@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { getConfig } from './api'
+import { useEffect, useRef, useState } from 'react'
+import { getConfig, saveConfig } from './api'
 import { DEFAULT_CONFIG, type KioskConfig } from './config'
 import { getMode } from './modes'
 import Widgets from './Widgets'
@@ -9,6 +9,24 @@ import './styles/kiosk.css'
 // re-polls config so changes made in /admin (from any device) appear on the wall.
 export default function Kiosk() {
   const [config, setConfig] = useState<KioskConfig>(DEFAULT_CONFIG)
+  const cfgRef = useRef(config)
+  cfgRef.current = config
+
+  // The countdown removes itself ~30s after hitting zero — Widgets fires this,
+  // and we persist it (same effect as a right-click Remove) so it stays gone.
+  const removeCountdown = () => {
+    const c = cfgRef.current
+    if (!c.widgets.countdown.enabled) return
+    const next = {
+      ...c,
+      widgets: {
+        ...c.widgets,
+        countdown: { ...c.widgets.countdown, enabled: false },
+      },
+    }
+    setConfig(next)
+    saveConfig(next)
+  }
 
   useEffect(() => {
     let alive = true
@@ -30,7 +48,7 @@ export default function Kiosk() {
   return (
     <div className={rootClass}>
       <Mode config={config} />
-      <Widgets config={config} />
+      <Widgets config={config} onCountdownExpire={removeCountdown} />
     </div>
   )
 }

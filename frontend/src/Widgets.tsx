@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KioskConfig, WidgetSize } from './config'
 
 // Predefined widget scales — the admin sets one of these per widget.
@@ -55,22 +55,54 @@ function CalendarWidget() {
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
+const GRACE_MS = 30_000 // keep the countdown up this long after it reaches zero
 
-function CountdownWidget({ label, target }: { label: string; target: string }) {
+function CountdownWidget({
+  label,
+  target,
+  onExpire,
+}: {
+  label: string
+  target: string
+  onExpire?: () => void
+}) {
   const now = useNow(1000)
   const [h, m] = target.split(':').map(Number)
   const t = new Date(now)
   if (Number.isFinite(h) && Number.isFinite(m)) t.setHours(h, m, 0, 0)
   const totalSec = Math.max(0, Math.floor((t.getTime() - now.getTime()) / 1000))
+
+  // Auto-remove GRACE_MS after the timer hits zero — but only if it actually
+  // counted down here, so placing one whose time already passed won't vanish.
+  const wasLive = useRef(false)
+  const fired = useRef(false)
+  if (totalSec > 0) wasLive.current = true
+  useEffect(() => {
+    if (
+      onExpire &&
+      wasLive.current &&
+      !fired.current &&
+      now.getTime() >= t.getTime() + GRACE_MS
+    ) {
+      fired.current = true
+      onExpire()
+    }
+  }, [now, t, onExpire])
+
   const hrs = Math.floor(totalSec / 3600)
   const mins = Math.floor((totalSec % 3600) / 60)
   const secs = totalSec % 60
   const display =
     hrs > 0 ? `${hrs}:${pad(mins)}:${pad(secs)}` : `${mins}:${pad(secs)}`
+  const flashing = totalSec === 0 && wasLive.current
   return (
     <div className="glass widget widget-countdown">
       {label && <div className="widget-countdown__label">{label}</div>}
-      <div className="widget-countdown__time">{display}</div>
+      <div
+        className={`widget-countdown__time${flashing ? ' widget-countdown__time--flash' : ''}`}
+      >
+        {display}
+      </div>
     </div>
   )
 }
@@ -93,7 +125,13 @@ export function slotStyle(
 
 // The overlay layer: renders enabled widgets at their positions, on top of the
 // active mode. pointer-events: none so it never blocks anything underneath.
-export default function Widgets({ config }: { config: KioskConfig }) {
+export default function Widgets({
+  config,
+  onCountdownExpire,
+}: {
+  config: KioskConfig
+  onCountdownExpire?: () => void
+}) {
   const { clock, calendar, countdown } = config.widgets
   return (
     <div className="widget-layer">
@@ -115,7 +153,11 @@ export default function Widgets({ config }: { config: KioskConfig }) {
           className="widget-slot"
           style={slotStyle(countdown, SIZE_SCALE[countdown.size])}
         >
-          <CountdownWidget label={countdown.label} target={countdown.target} />
+          <CountdownWidget
+            label={countdown.label}
+            target={countdown.target}
+            onExpire={onCountdownExpire}
+          />
         </div>
       )}
     </div>
