@@ -273,6 +273,46 @@
   font-size: 0.82rem;
   color: var(--os-muted);
 }
+.os-widget-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.os-wset {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--os-border);
+  border-radius: 10px;
+}
+.os-wset__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.os-wset__name {
+  font-weight: 700;
+  color: var(--os-text);
+}
+.os-seg--sm {
+  margin-bottom: 0;
+  padding: 2px;
+}
+.os-seg--sm .os-seg-btn {
+  padding: 4px 11px;
+  font-size: 0.8rem;
+}
+.os-wset__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.os-wset__fields .os-field {
+  margin-bottom: 0;
+}
 .os-ctxmenu {
   position: fixed;
   z-index: 50;

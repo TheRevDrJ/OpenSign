@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { KioskConfig } from './config'
+import type { KioskConfig, CountdownConfig, WidgetSize } from './config'
 import { slotStyle } from './Widgets'
 
 // Snap grid is orientation-aware: 15 points either way (5×3 landscape, 3×5
@@ -12,9 +12,19 @@ const edges = (n: number) =>
 const nearest = (v: number, points: number[]) =>
   points.reduce((best, p) => (Math.abs(p - v) < Math.abs(best - v) ? p : best), points[0])
 
-type Which = 'clock' | 'calendar'
-const ALL: Which[] = ['clock', 'calendar']
-const LABEL: Record<Which, string> = { clock: 'Clock', calendar: 'Calendar' }
+type Which = 'clock' | 'calendar' | 'countdown'
+const ALL: Which[] = ['clock', 'calendar', 'countdown']
+const LABEL: Record<Which, string> = {
+  clock: 'Clock',
+  calendar: 'Calendar',
+  countdown: 'Countdown',
+}
+const SIZES: { id: WidgetSize; label: string }[] = [
+  { id: 'sm', label: 'S' },
+  { id: 'md', label: 'M' },
+  { id: 'lg', label: 'L' },
+  { id: 'xl', label: 'XL' },
+]
 
 // A 16:9 representation of the screen, oriented by the manual toggle so a portrait
 // wall can be laid out from a landscape desk.
@@ -58,10 +68,15 @@ export default function WidgetLocator({
       const x = nearest(clamp(((e.clientX - box.left) / box.width) * 100), grid.x)
       const y = nearest(clamp(((e.clientY - box.top) / box.height) * 100), grid.y)
       const cfg = cfgRef.current
-      // Don't let the two widgets share a spot — block a move onto the other's cell.
-      const other = which === 'clock' ? 'calendar' : 'clock'
-      const o = cfg.widgets[other]
-      if (o.enabled && o.x === x && o.y === y) return
+      // Don't let widgets share a spot — block a move onto a cell another holds.
+      const clash = ALL.some(
+        (other) =>
+          other !== which &&
+          cfg.widgets[other].enabled &&
+          cfg.widgets[other].x === x &&
+          cfg.widgets[other].y === y,
+      )
+      if (clash) return
       patch({
         widgets: { ...cfg.widgets, [which]: { ...cfg.widgets[which], x, y } },
       })
@@ -95,6 +110,15 @@ export default function WidgetLocator({
       widgets: {
         ...cfgRef.current.widgets,
         [which]: { ...cfgRef.current.widgets[which], enabled: on },
+      },
+    })
+
+  // Merge a partial into one widget's config (size, and countdown's label/target).
+  const patchWidget = (which: Which, p: Partial<CountdownConfig>) =>
+    patch({
+      widgets: {
+        ...config.widgets,
+        [which]: { ...config.widgets[which], ...p },
       },
     })
 
@@ -187,6 +211,53 @@ export default function WidgetLocator({
         Drag a widget onto the screen to place it · right-click a placed widget to
         remove it.
       </p>
+
+      {enabled.length > 0 && (
+        <div className="os-widget-settings">
+          {enabled.map((w) => (
+            <div key={w} className="os-wset">
+              <div className="os-wset__head">
+                <span className="os-wset__name">{LABEL[w]}</span>
+                <div className="os-seg os-seg--sm" role="group" aria-label="Size">
+                  {SIZES.map((s) => (
+                    <button
+                      key={s.id}
+                      className={`os-seg-btn${config.widgets[w].size === s.id ? ' active' : ''}`}
+                      onClick={() => patchWidget(w, { size: s.id })}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {w === 'countdown' && (
+                <div className="os-wset__fields">
+                  <label className="os-field">
+                    <span>Label</span>
+                    <input
+                      value={config.widgets.countdown.label}
+                      placeholder="e.g. TIME UNTIL WORSHIP"
+                      onChange={(e) =>
+                        patchWidget('countdown', { label: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="os-field">
+                    <span>Counts down to</span>
+                    <input
+                      type="time"
+                      value={config.widgets.countdown.target}
+                      onChange={(e) =>
+                        patchWidget('countdown', { target: e.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {menu && (
         <div

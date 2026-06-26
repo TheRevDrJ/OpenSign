@@ -15,6 +15,7 @@ function mergeConfig(loaded: Partial<KioskConfig>): KioskConfig {
     widgets: {
       clock: { ...DEFAULT_CONFIG.widgets.clock, ...w?.clock },
       calendar: { ...DEFAULT_CONFIG.widgets.calendar, ...w?.calendar },
+      countdown: { ...DEFAULT_CONFIG.widgets.countdown, ...w?.countdown },
     },
   }
 }

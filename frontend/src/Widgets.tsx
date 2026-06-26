@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { KioskConfig } from './config'
+import type { KioskConfig, WidgetSize } from './config'
+
+// Predefined widget scales — the admin sets one of these per widget.
+export const SIZE_SCALE: Record<WidgetSize, number> = {
+  sm: 0.8,
+  md: 1,
+  lg: 1.5,
+  xl: 2.5,
+}
 
 // Live "now", refreshed on an interval (1s for the clock, slower for the date).
 function useNow(intervalMs: number) {
@@ -46,30 +54,68 @@ function CalendarWidget() {
   )
 }
 
+const pad = (n: number) => String(n).padStart(2, '0')
+
+function CountdownWidget({ label, target }: { label: string; target: string }) {
+  const now = useNow(1000)
+  const [h, m] = target.split(':').map(Number)
+  const t = new Date(now)
+  if (Number.isFinite(h) && Number.isFinite(m)) t.setHours(h, m, 0, 0)
+  const totalSec = Math.max(0, Math.floor((t.getTime() - now.getTime()) / 1000))
+  const hrs = Math.floor(totalSec / 3600)
+  const mins = Math.floor((totalSec % 3600) / 60)
+  const secs = totalSec % 60
+  const display =
+    hrs > 0 ? `${hrs}:${pad(mins)}:${pad(secs)}` : `${mins}:${pad(secs)}`
+  return (
+    <div className="glass widget widget-countdown">
+      {label && <div className="widget-countdown__label">{label}</div>}
+      <div className="widget-countdown__time">{display}</div>
+    </div>
+  )
+}
+
 // Position a widget by its x/y%. The translate(-x%, -y%) keeps it fully on-screen
-// at any position: anchor slides from the widget's top-left (0) to bottom-right (100).
-export function slotStyle(p: { x: number; y: number }): React.CSSProperties {
+// at any position (anchor slides from top-left at 0 to bottom-right at 100), and
+// the optional scale grows it AWAY from that anchor, so it never spills off the
+// edge it's pinned to.
+export function slotStyle(
+  p: { x: number; y: number },
+  scale = 1,
+): React.CSSProperties {
   return {
     left: `${p.x}%`,
     top: `${p.y}%`,
-    transform: `translate(${-p.x}%, ${-p.y}%)`,
+    transformOrigin: `${p.x}% ${p.y}%`,
+    transform: `translate(${-p.x}%, ${-p.y}%) scale(${scale})`,
   }
 }
 
 // The overlay layer: renders enabled widgets at their positions, on top of the
 // active mode. pointer-events: none so it never blocks anything underneath.
 export default function Widgets({ config }: { config: KioskConfig }) {
-  const { clock, calendar } = config.widgets
+  const { clock, calendar, countdown } = config.widgets
   return (
     <div className="widget-layer">
       {clock.enabled && (
-        <div className="widget-slot" style={slotStyle(clock)}>
+        <div className="widget-slot" style={slotStyle(clock, SIZE_SCALE[clock.size])}>
           <ClockWidget />
         </div>
       )}
       {calendar.enabled && (
-        <div className="widget-slot" style={slotStyle(calendar)}>
+        <div
+          className="widget-slot"
+          style={slotStyle(calendar, SIZE_SCALE[calendar.size])}
+        >
           <CalendarWidget />
+        </div>
+      )}
+      {countdown.enabled && (
+        <div
+          className="widget-slot"
+          style={slotStyle(countdown, SIZE_SCALE[countdown.size])}
+        >
+          <CountdownWidget label={countdown.label} target={countdown.target} />
         </div>
       )}
     </div>

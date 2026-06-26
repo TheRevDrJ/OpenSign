@@ -10,6 +10,8 @@ export type ThemeId = 'honededge' | 'openvoice'
 /** Display orientation — drives the admin widget-locator's shape (set manually,
  *  so a portrait wall can be laid out from a landscape desk). */
 export type Orientation = 'landscape' | 'portrait'
+/** Predefined widget sizes (the scale factors live in Widgets.tsx). */
+export type WidgetSize = 'sm' | 'md' | 'lg' | 'xl'
 
 export interface TextConfig {
   headline: string
@@ -36,11 +38,22 @@ export interface WidgetConfig {
   /** anchor position as screen percentages (0–100); the locator snaps to a 15-point grid. */
   x: number
   y: number
+  /** predefined display size. */
+  size: WidgetSize
+}
+
+/** The countdown widget adds a caption and a target time-of-day to count down to. */
+export interface CountdownConfig extends WidgetConfig {
+  /** caption above the timer, e.g. "TIME UNTIL WORSHIP". */
+  label: string
+  /** target time of day, 24h "HH:MM"; counts down to today's occurrence. */
+  target: string
 }
 
 export interface WidgetsConfig {
   clock: WidgetConfig
   calendar: WidgetConfig
+  countdown: CountdownConfig
 }
 
 export interface KioskConfig {
@@ -76,7 +89,15 @@ export const DEFAULT_CONFIG: KioskConfig = {
     intervalMs: 8000,
   },
   widgets: {
-    clock: { enabled: false, x: 100, y: 100 },
-    calendar: { enabled: false, x: 100, y: 0 },
+    clock: { enabled: false, x: 100, y: 100, size: 'md' },
+    calendar: { enabled: false, x: 100, y: 0, size: 'md' },
+    countdown: {
+      enabled: false,
+      x: 50,
+      y: 50,
+      size: 'lg',
+      label: 'TIME UNTIL WORSHIP',
+      target: '10:45',
+    },
   },
 }

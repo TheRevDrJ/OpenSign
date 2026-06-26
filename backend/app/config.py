@@ -17,8 +17,16 @@ DEFAULT_CONFIG = {
     },
     "images": {"kind": "single", "fit": "contain", "image": "", "folder": "", "intervalMs": 8000},
     "widgets": {
-        "clock": {"enabled": False, "x": 100, "y": 100},
-        "calendar": {"enabled": False, "x": 100, "y": 0},
+        "clock": {"enabled": False, "x": 100, "y": 100, "size": "md"},
+        "calendar": {"enabled": False, "x": 100, "y": 0, "size": "md"},
+        "countdown": {
+            "enabled": False,
+            "x": 50,
+            "y": 50,
+            "size": "lg",
+            "label": "TIME UNTIL WORSHIP",
+            "target": "10:45",
+        },
     },
 }
 
