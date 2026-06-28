@@ -26,6 +26,8 @@ __pycache__/
 .venv/
 venv/
 *.exe
+# Runtime logs from the dev-server manager (may contain local paths)
+*.log
 
 # Editor / OS noise
 .DS_Store
