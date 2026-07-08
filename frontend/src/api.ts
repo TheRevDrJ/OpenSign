@@ -46,12 +46,15 @@ export async function saveConfig(config: KioskConfig): Promise<boolean> {
 
 /**
  * Turn a stored value into a loadable <img> src.
- * - http(s):// or a server path (/…) → use as-is
- * - anything else (a local filesystem path) → serve in place via the backend
+ * - a full web URL (http(s):// or data:) → use as-is
+ * - anything else → a local filesystem path on the display machine, served in
+ *   place via the backend. This includes BOTH macOS/Linux paths ("/Users/…")
+ *   and Windows paths ("C:\…"); we must NOT treat a leading "/" as a server
+ *   URL, or every absolute Unix path would bypass the backend and 404.
  */
 export function mediaSrc(value: string): string {
   if (!value) return ''
-  if (/^https?:\/\//i.test(value) || value.startsWith('/')) return value
+  if (/^(?:https?:|data:)/i.test(value)) return value
   return `/api/localfile?path=${encodeURIComponent(value)}`
 }
 
