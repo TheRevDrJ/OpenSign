@@ -51,15 +51,29 @@ can configure the wall from your desk.
 
 ## Running it (dev)
 
-```sh
-# frontend  → http://localhost:6100
-cd frontend && npm install && npm run dev
+Two dev servers: the Vite **frontend on 6100** and the FastAPI **backend on 6101**
+(Vite proxies `/api` to it). Clone, set up once, then start — on either platform.
 
-# backend   → http://localhost:6101  (Vite proxies /api to it)
-cd backend
-uv venv .venv
-uv pip install -r requirements.txt
-.venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 6101 --app-dir .
+### macOS / Linux
+
+```sh
+./setup.sh            # one-time: checks Node 20+ / Python 3.10+, builds the
+                      # backend venv, installs both halves
+./opensign.sh start   # start both servers (survives closing the terminal)
+                      # also: stop | restart | status | verbose | log
+```
+
+### Windows
+
+```bat
+:: one-time setup
+python -m venv backend\.venv
+backend\.venv\Scripts\pip install -r backend\requirements.txt
+cd frontend && npm install && cd ..
+
+:: then run both servers (or just double-click begin.bat)
+opensign.bat start
+:: also: stop | restart | status | verbose | log     (end.bat = stop)
 ```
 
 ## License
