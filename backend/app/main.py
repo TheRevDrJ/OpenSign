@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import dialogs
 from .config import load_config, save_config
 from .paths import base_dir, ensure_dirs
 
@@ -72,60 +73,23 @@ def folder_list(path: str):
 
 # --- Native pickers (open a dialog on the display machine, return a path) ---
 
-def _pick(kind: str) -> str | None:
-    import tkinter as tk
-    from tkinter import filedialog
-
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    try:
-        if kind == "folder":
-            path = filedialog.askdirectory(parent=root, title="Choose a folder")
-        else:
-            path = filedialog.askopenfilename(
-                parent=root,
-                title="Choose an image",
-                filetypes=[
-                    ("Images", "*.png *.jpg *.jpeg *.gif *.bmp *.webp *.svg"),
-                    ("All files", "*.*"),
-                ],
-            )
-    finally:
-        root.destroy()
-    return path or None
-
+# --- Native OS file/folder pickers (opened on the display machine) ---
 
 @app.get("/api/pick/file")
 def pick_file():
-    return {"path": _pick("file")}
+    return {"path": dialogs.pick_image()}
 
 
 @app.get("/api/pick/folder")
 def pick_folder():
-    return {"path": _pick("folder")}
+    return {"path": dialogs.pick_folder()}
 
 
 # --- Save / load the whole config as a named .json layout (native dialogs) ---
 
 @app.post("/api/layout/save")
 def layout_save(cfg: dict):
-    import tkinter as tk
-    from tkinter import filedialog
-
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    try:
-        path = filedialog.asksaveasfilename(
-            parent=root,
-            title="Save layout",
-            defaultextension=".json",
-            initialfile="opensign-layout.json",
-            filetypes=[("OpenSign layout", "*.json"), ("All files", "*.*")],
-        )
-    finally:
-        root.destroy()
+    path = dialogs.save_layout()
     if not path:
         return {"path": None}
     Path(path).write_text(
@@ -136,20 +100,7 @@ def layout_save(cfg: dict):
 
 @app.get("/api/layout/load")
 def layout_load():
-    import tkinter as tk
-    from tkinter import filedialog
-
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    try:
-        path = filedialog.askopenfilename(
-            parent=root,
-            title="Load layout",
-            filetypes=[("OpenSign layout", "*.json"), ("All files", "*.*")],
-        )
-    finally:
-        root.destroy()
+    path = dialogs.load_layout()
     if not path:
         return {"path": None, "config": None}
     try:
