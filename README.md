@@ -76,6 +76,22 @@ opensign.bat start
 :: also: stop | restart | status | verbose | log     (end.bat = stop)
 ```
 
+## Running it on a display (production)
+
+The `dev` servers above use Vite's hot-reload, which keeps a live WebSocket to the
+browser. A kiosk pointed at that over a LAN will **reload itself every minute or so**
+when the socket idles out. So a display machine should run the **built** app, which
+has no such socket — served, together with the API, from the backend on **one port**:
+
+```sh
+./opensign.sh serve      # build the frontend, serve app + API from :6101
+```
+
+Then point the display's browser at the printed **LAN URL** (`http://<host>:6101/`),
+not the dev server on 6100. Re-run `./opensign.sh serve` after any frontend change to
+rebuild. (`./opensign.sh build` just builds without serving.) On Windows, `npm --prefix
+frontend run build` then run the backend — it serves `frontend/dist/` automatically.
+
 ## License
 
 [AGPL-3.0](LICENSE) — use it, modify it, share it. Free forever. If you distribute or

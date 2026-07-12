@@ -57,6 +57,35 @@ show_urls() {
   echo "    Admin:  $URL/admin"
 }
 
+# Launch the backend headless if it isn't already up. Does not wait.
+_start_backend() {
+  if [ -n "$(listeners "$BACKEND_PORT")" ]; then
+    echo "  Backend  already running on $BACKEND_PORT."
+    return
+  fi
+  echo "  Starting backend  (uvicorn) on $BACKEND_PORT ..."
+  ( cd "$DIR" && nohup "$VENV_PYTHON" -m uvicorn app.main:app \
+      --host 0.0.0.0 --port "$BACKEND_PORT" --app-dir backend \
+      > "$BACKEND_LOG" 2>&1 & )
+}
+
+# Wait up to ~40s for a port to start listening. Returns 0 if it came up.
+_wait_port() {
+  local n=0
+  while [ -z "$(listeners "$1")" ] && [ "$n" -lt 40 ]; do sleep 1; n=$((n + 1)); done
+  [ -n "$(listeners "$1")" ]
+}
+
+# Best-effort LAN IPv4, for a kiosk URL other machines can reach (empty if none).
+lan_ip() {
+  local ip
+  ip="$(ipconfig getifaddr en0 2>/dev/null || true)"
+  [ -z "$ip" ] && ip="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}' \
+      | xargs -I{} ipconfig getifaddr {} 2>/dev/null || true)"
+  [ -z "$ip" ] && ip="$(ifconfig 2>/dev/null | awk '/inet /{if($2!="127.0.0.1"){print $2; exit}}')"
+  echo "$ip"
+}
+
 # --- commands ----------------------------------------------------------------
 
 cmd_start() {
@@ -68,14 +97,7 @@ cmd_start() {
   fi
 
   # --- Backend (FastAPI :6101) ---
-  if [ -n "$(listeners "$BACKEND_PORT")" ]; then
-    echo "  Backend  already running on $BACKEND_PORT."
-  else
-    echo "  Starting backend  (uvicorn) on $BACKEND_PORT ..."
-    ( cd "$DIR" && nohup "$VENV_PYTHON" -m uvicorn app.main:app \
-        --host 0.0.0.0 --port "$BACKEND_PORT" --app-dir backend \
-        > "$BACKEND_LOG" 2>&1 & )
-  fi
+  _start_backend
 
   # --- Frontend (Vite :6100) ---
   if [ -n "$(listeners "$FRONTEND_PORT")" ]; then
@@ -125,6 +147,57 @@ cmd_stop() {
 }
 
 cmd_restart() { cmd_stop; sleep 1; echo; cmd_start; }
+
+# Build the production frontend bundle into frontend/dist/.
+cmd_build() {
+  echo "  Building the production frontend (npm run build) ..."
+  ( cd "$FRONTEND_DIR" && npm run build ) || return 1
+  echo "  [OK] Built to frontend/dist/"
+}
+
+# PRODUCTION mode. Build the frontend, then serve it AND the API from the backend
+# alone on one port — no Vite dev server, so there is no hot-reload WebSocket for
+# a kiosk to drop and auto-refresh on. This is how a display machine should run.
+# Non-disruptive: if the backend is already serving the built app, a rebuild is
+# picked up live (files are read per-request), so we don't restart and blip the
+# display; we only (re)start when the backend isn't already serving dist.
+cmd_serve() {
+  if [ ! -x "$VENV_PYTHON" ]; then
+    echo "  [X] backend venv not found — run ./setup.sh first."
+    return 1
+  fi
+  cmd_build || { echo "  [X] build failed — leaving the running server untouched."; return 1; }
+  echo
+
+  # Is a backend already up AND actually serving the built SPA (not just the API)?
+  local serving_dist=0
+  if [ -n "$(listeners "$BACKEND_PORT")" ] \
+     && curl -sf "http://localhost:$BACKEND_PORT/" 2>/dev/null | grep -q 'id="root"'; then
+    serving_dist=1
+  fi
+
+  if [ "$serving_dist" -eq 1 ]; then
+    echo "  Backend already serving on $BACKEND_PORT — picked up the fresh build live (no restart)."
+  else
+    # Either it's down, or it started before dist/ existed (SPA mount inactive).
+    # Restart so the built app is mounted and served.
+    kill_port "$BACKEND_PORT" "backend" >/dev/null 2>&1 || true
+    _start_backend
+    if ! _wait_port "$BACKEND_PORT"; then
+      echo "  [X] backend did not come up on $BACKEND_PORT — see backend.log"
+      return 1
+    fi
+  fi
+
+  local ip; ip="$(lan_ip)"
+  echo
+  echo "  OpenSign is serving the PRODUCTION build on $BACKEND_PORT (no dev server, no HMR)."
+  echo "    Local:  http://localhost:$BACKEND_PORT/   (admin: /admin)"
+  [ -n "$ip" ] && echo "    LAN  :  http://$ip:$BACKEND_PORT/          <- point the kiosk display here"
+  echo
+  echo "  The :$FRONTEND_PORT Vite dev server is only for development — the kiosk does NOT need it."
+  echo "  After changing frontend code, re-run './opensign.sh serve' to rebuild + refresh."
+}
 
 cmd_status() {
   local back front
@@ -182,31 +255,43 @@ cmd_help() {
 
   Usage:  ./opensign.sh [command]
 
-    start     Start both dev servers in the background (frontend $FRONTEND_PORT + backend $BACKEND_PORT)
+  DEVELOPMENT (Vite hot-reload on $FRONTEND_PORT + API on $BACKEND_PORT):
+    start     Start both dev servers in the background
     stop      Stop both (only ever touches those two ports)
     restart   Stop, then start
     status    Show whether each server is running
     verbose   Run backend in the foreground with live logs (Ctrl-C); frontend stays headless
     log       Follow both server logs live (Ctrl-C)
+
+  PRODUCTION (what a kiosk/display should run — single port, no hot-reload socket):
+    build     Build the production frontend into frontend/dist/
+    serve     Build, then serve the app + API from the backend alone on $BACKEND_PORT
+
     help      This help
 
-  Aliases:  up = start      down, drop = stop
+  Aliases:  up = start      down, drop = stop      prod = serve
 
-    Kiosk:  $URL/
-    Admin:  $URL/admin
+    Dev kiosk:  $URL/          (admin: $URL/admin)
 
-  Servers run in the background and survive closing this terminal. After a
+  Dev servers run in the background and survive closing this terminal. After a
   sleep drops them, just run:  ./opensign.sh start
+
+  A DISPLAY MACHINE should point at the 'serve' URL ($BACKEND_PORT), NOT the Vite
+  dev server ($FRONTEND_PORT): the dev server's hot-reload socket can drop over a
+  LAN and force the page to reload every minute or so. The built app has no such
+  socket.
 EOF
 }
 
 case "${1:-help}" in
-  start|up)        cmd_start ;;
-  stop|down|drop)  cmd_stop ;;
-  restart)         cmd_restart ;;
-  status)          cmd_status ;;
-  verbose)         cmd_verbose ;;
-  log|logs)        cmd_log ;;
-  help|--help|-h)  cmd_help ;;
+  start|up)         cmd_start ;;
+  stop|down|drop)   cmd_stop ;;
+  restart)          cmd_restart ;;
+  status)           cmd_status ;;
+  verbose)          cmd_verbose ;;
+  build)            cmd_build ;;
+  serve|prod)       cmd_serve ;;
+  log|logs)         cmd_log ;;
+  help|--help|-h)   cmd_help ;;
   *) echo "Unknown command: ${1:-}"; cmd_help; exit 1 ;;
 esac
