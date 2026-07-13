@@ -51,7 +51,7 @@ can configure the wall from your desk.
 
 ## Running it
 
-**One server on port 6101.** The FastAPI backend serves both the built frontend and
+**One server on port 6100.** The FastAPI backend serves both the built frontend and
 the API — the same artifact in development and on the kiosk, so there's no "worked in
 dev, broke in prod." Managed by one script (`opensign.sh` on macOS/Linux,
 `opensign.bat` on Windows).
@@ -60,7 +60,7 @@ dev, broke in prod." Managed by one script (`opensign.sh` on macOS/Linux,
 
 ```sh
 ./setup.sh             # one-time: Node 20+ / Python 3.10+, venv, deps
-./opensign.sh start    # build the frontend, then serve it + the API on :6101
+./opensign.sh start    # build the frontend, then serve it + the API on :6100
 # also: stop | build | watch | status | restart | log
 ```
 
@@ -72,14 +72,13 @@ python -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 cd frontend && npm install && cd ..
 
-opensign.bat start     :: build + serve on :6101   (or double-click begin.bat)
+opensign.bat start     :: build + serve on :6100   (or double-click begin.bat)
 :: also: stop | build | watch | status | restart | log
 ```
 
-Point the **display** at the LAN URL it prints (`http://<lan-ip>:6101/`). After
+Point the **display** at the LAN URL it prints (`http://<lan-ip>:6100/`). After
 changing frontend code, re-run `build` (or use `watch`, which serves and auto-rebuilds
-on save — just refresh the page). Need hot-reload for heavy UI work? `cd frontend && npm
-run dev` still works on 6100 — it's just not part of this managed workflow.
+on save — just refresh the page).
 
 ## License
 

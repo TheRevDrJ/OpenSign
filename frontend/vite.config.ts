@@ -3,10 +3,11 @@ import react from '@vitejs/plugin-react'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// OpenSign dev server. Pinned to 6100 (Bobnet port registry); backend on 6101.
-// NOT 6000 — that's the X11 port, which browsers hard-block as ERR_UNSAFE_PORT.
-// In production the FastAPI backend serves the built `dist/` on a single port —
-// this proxy only matters during `npm run dev`.
+// OPTIONAL dev server. The normal way OpenSign runs is a single server: the
+// FastAPI backend on 6100 serves the built `dist/` AND the API (see opensign.sh).
+// This config only matters if you explicitly run `npm run dev` for hot-reload —
+// it puts Vite on 6101 and proxies /api to the managed backend on 6100.
+// (NOT 6000 — the X11 port, which browsers hard-block as ERR_UNSAFE_PORT.)
 // https://vite.dev/config/
 export default defineConfig({
   // Some file-sync tools (Dropbox, OneDrive, …) race Vite's rapid dep-cache
@@ -22,10 +23,10 @@ export default defineConfig({
     // host check (fine for a trusted-LAN dev tool).
     host: true,
     allowedHosts: true,
-    port: 6100,
+    port: 6101,
     strictPort: true,
     proxy: {
-      '/api': 'http://localhost:6101',
+      '/api': 'http://localhost:6100',
     },
   },
 })

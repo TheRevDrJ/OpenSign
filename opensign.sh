@@ -2,11 +2,11 @@
 #
 # OpenSign — server manager (macOS / Linux)
 #
-# One server, one port. The FastAPI backend on :6101 serves BOTH the built
+# One server, one port. The FastAPI backend on :6100 serves BOTH the built
 # frontend (frontend/dist) AND the API — the same artifact in development and on
 # the kiosk (dev/prod parity, no separate dev server, no hot-reload socket).
 #
-#   ./opensign.sh start     build the frontend, then serve it + the API on :6101
+#   ./opensign.sh start     build the frontend, then serve it + the API on :6100
 #   ./opensign.sh stop      stop the server
 #   ./opensign.sh build     rebuild the frontend (after changing frontend code)
 #   ./opensign.sh watch     serve + auto-rebuild on save (dev loop; refresh page)
@@ -14,19 +14,17 @@
 #   ./opensign.sh restart   stop, then start
 #   ./opensign.sh log       follow the log
 #
-# Point the kiosk display at the printed LAN URL (http://<lan-ip>:6101/).
-# (Need hot-reload for heavy UI work? `cd frontend && npm run dev` still works
-#  on :6100 — it's just not part of this managed workflow.)
+# Point the kiosk display at the printed LAN URL (http://<lan-ip>:6100/).
 #
 # SAFETY (process kills are destructive — kill NARROW, never broad): stop targets
-# ONLY the PID LISTENING on the hard-coded port 6101 via `lsof -sTCP:LISTEN`,
+# ONLY the PID LISTENING on the hard-coded port 6100 via `lsof -sTCP:LISTEN`,
 # validates it's numeric, and is a no-op when nothing is listening. No wildcard
 # or name match, so an empty target can never become "kill everything."
 
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PORT=6101
+PORT=6100
 FRONTEND_DIR="$DIR/frontend"
 BACKEND_LOG="$DIR/backend.log"
 VENV_PYTHON="$DIR/backend/.venv/bin/python"
@@ -52,8 +50,10 @@ kill_port() {
 _start_backend() {
   if [ -n "$(listeners "$PORT")" ]; then echo "  Server already running on $PORT."; return; fi
   echo "  Starting server (uvicorn) on $PORT ..."
+  # < /dev/null so the backgrounded server can't inherit (and hold open) a
+  # caller's stdout pipe — otherwise `opensign.sh start | ...` hangs forever.
   ( cd "$DIR" && nohup "$VENV_PYTHON" -m uvicorn app.main:app \
-      --host 0.0.0.0 --port "$PORT" --app-dir backend > "$BACKEND_LOG" 2>&1 & )
+      --host 0.0.0.0 --port "$PORT" --app-dir backend < /dev/null > "$BACKEND_LOG" 2>&1 & )
 }
 
 _wait_port() {
@@ -185,8 +185,7 @@ usage() {
     help      this help
 
   Point a display at the LAN URL (http://<lan-ip>:$PORT/), never localhost on
-  another machine. (Heavy UI work and want hot-reload? 'cd frontend && npm run
-  dev' still works on :6100 — just outside this managed workflow.)
+  another machine.
 EOF
 }
 

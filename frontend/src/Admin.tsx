@@ -70,7 +70,7 @@ export default function Admin() {
     }
     const t = setTimeout(async () => {
       const ok = await saveConfig(config)
-      setStatus(ok ? 'Saved ✓' : 'Could not reach the backend (:6101).')
+      setStatus(ok ? 'Saved ✓' : 'Could not reach the backend (:6100).')
     }, 400)
     return () => clearTimeout(t)
   }, [config])

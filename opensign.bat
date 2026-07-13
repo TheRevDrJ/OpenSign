@@ -7,11 +7,11 @@ setlocal enabledelayedexpansion
 :: ============================================================================
 :: OpenSign Server Manager (Windows) - mirrors opensign.sh
 ::
-:: One server, one port: the FastAPI backend on :6101 serves BOTH the built
+:: One server, one port: the FastAPI backend on :6100 serves BOTH the built
 :: frontend (frontend\dist) AND the API - the same artifact in development and
 :: on the kiosk. No separate dev server, no hot-reload socket.
 ::
-::   opensign start     build the frontend, then serve it + the API on :6101
+::   opensign start     build the frontend, then serve it + the API on :6100
 ::   opensign stop      stop the server
 ::   opensign build     rebuild the frontend (after changing frontend code)
 ::   opensign watch     serve + auto-rebuild on save (dev loop; refresh page)
@@ -19,16 +19,16 @@ setlocal enabledelayedexpansion
 ::   opensign restart   stop, then start
 ::   opensign log       follow the log
 ::
-:: Point the kiosk display at  http://<this-PC-IP>:6101/ .
+:: Point the kiosk display at  http://<this-PC-IP>:6100/ .
 ::
 :: SAFETY (process-kills are destructive - kill NARROW, never broad): the kill
-:: targets ONLY the PID LISTENING on the hard-coded port 6101 via :find_pid, or
+:: targets ONLY the PID LISTENING on the hard-coded port 6100 via :find_pid, or
 :: the narrow command-line match in kill_opensign.ps1. No broad/wildcard match
 :: exists, so an empty target is a no-op, never a fall-through to killing all.
 :: ============================================================================
 
 set "SCRIPT_DIR=%~dp0"
-set "PORT=6101"
+set "PORT=6100"
 set "BACKEND_LOG=%SCRIPT_DIR%backend.log"
 set "FRONTEND_DIR=%SCRIPT_DIR%frontend"
 set "VENV_PYTHONW=%SCRIPT_DIR%backend\.venv\Scripts\pythonw.exe"

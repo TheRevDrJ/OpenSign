@@ -1,4 +1,4 @@
 @echo off
-:: Double-click convenience: start the OpenSign server (build + serve on 6101).
+:: Double-click convenience: start the OpenSign server (build + serve on 6100).
 "%~dp0opensign.bat" start
 pause
