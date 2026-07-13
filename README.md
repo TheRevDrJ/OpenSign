@@ -80,6 +80,13 @@ Point the **display** at the LAN URL it prints (`http://<lan-ip>:6100/`). After
 changing frontend code, re-run `build` (or use `watch`, which serves and auto-rebuilds
 on save — just refresh the page).
 
+## Deploying on a display
+
+One server, any number of screens. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the
+setup checklist — notably: **the display box must reboot nightly** (a long-running
+kiosk's WiFi adapter starts dropping the link when idle), disable sleep/power-saving,
+and prefer wired over WiFi.
+
 ## License
 
 [AGPL-3.0](LICENSE) — use it, modify it, share it. Free forever. If you distribute or
