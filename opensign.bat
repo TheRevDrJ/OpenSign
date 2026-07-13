@@ -5,21 +5,24 @@
 setlocal enabledelayedexpansion
 
 :: ============================================================================
-:: OpenSign Dev Server Manager  (mirrors OpenEar's openear.bat)
-:: Usage: opensign [command]
+:: OpenSign Server Manager (Windows) - mirrors opensign.sh
 ::
-:: Two dev servers, both launched HEADLESS so they survive closing the terminal:
-::   Frontend - Vite  :6100  (node, via a hidden-launch .vbs shim - node's
-::                            windowless analog to pythonw)
-::   Backend  - FastAPI :6101 (python, via pythonw.exe - no console, no window)
-:: Production ships as a single .exe; this is dev convenience only.
+:: Usage: opensign <command> [dev^|prod]
+::   start dev ^| start prod ^| stop dev ^| stop prod ^| status ^| build
+::   restart dev^|prod ^| log ^| help
 ::
-:: SAFETY (process-kills are destructive - kill NARROW, never
-:: broad): every kill targets a SPECIFIC port's PID (ports are hard-coded
-:: literals 6100/6101, never blank) or a narrow command-line match in
-:: kill_opensign.ps1. There is NO broad/wildcard process match anywhere, so it
-:: cannot sweep ports or kill-all even if a variable were somehow empty. A blank
-:: target is a no-op, never a fall-through to broad.
+::   DEV  = Vite hot-reload frontend :6100 + FastAPI backend :6101 (development)
+::   PROD = the BUILT frontend served with the API from the backend alone on
+::          :6101 (no Vite, no hot-reload socket) - what a kiosk should run.
+::
+::   The backend :6101 is SHARED (dev API + prod app), so 'stop dev' stops only
+::   Vite and 'stop prod' stops the backend.
+::
+:: SAFETY (process-kills are destructive - kill NARROW, never broad): every kill
+:: targets a SPECIFIC hard-coded port's PID (6100/6101, never blank) via
+:: :find_pid, or the narrow command-line match in kill_opensign.ps1. No broad or
+:: wildcard match exists, so an empty target is a no-op, never a fall-through to
+:: killing everything.
 :: ============================================================================
 
 set "SCRIPT_DIR=%~dp0"
@@ -27,202 +30,211 @@ set "FRONTEND_PORT=6100"
 set "BACKEND_PORT=6101"
 set "BACKEND_LOG=%SCRIPT_DIR%backend.log"
 set "FRONTEND_LOG=%SCRIPT_DIR%frontend.log"
-set "VENV_PYTHON=%SCRIPT_DIR%backend\.venv\Scripts\python.exe"
+set "FRONTEND_DIR=%SCRIPT_DIR%frontend"
 set "VENV_PYTHONW=%SCRIPT_DIR%backend\.venv\Scripts\pythonw.exe"
 set "FRONTEND_VBS=%SCRIPT_DIR%start_frontend_hidden.vbs"
 set "KILL_HELPER=%SCRIPT_DIR%kill_opensign.ps1"
 
-if "%~1"=="" goto help
-if /i "%~1"=="start" goto start
-if /i "%~1"=="up" goto start
-if /i "%~1"=="stop" goto stop
-if /i "%~1"=="down" goto stop
-if /i "%~1"=="drop" goto stop
-if /i "%~1"=="restart" goto restart
-if /i "%~1"=="status" goto status
-if /i "%~1"=="verbose" goto verbose
-if /i "%~1"=="log" goto log
-if /i "%~1"=="help" goto help
-if /i "%~1"=="--help" goto help
-if /i "%~1"=="-h" goto help
+set "CMD=%~1"
+set "TARGET=%~2"
+
+if /i "%CMD%"=="start"   goto route_start
+if /i "%CMD%"=="stop"    goto route_stop
+if /i "%CMD%"=="restart" goto route_restart
+if /i "%CMD%"=="status"  goto do_status
+if /i "%CMD%"=="build"   goto do_build
+if /i "%CMD%"=="log"     goto do_log
+if /i "%CMD%"=="help"    goto help
+if /i "%CMD%"=="--help"  goto help
+if /i "%CMD%"=="-h"      goto help
 goto help
 
 :: ============================================================================
-:start
-::   Launches both servers headless (no console windows). They keep running
-::   after you close this terminal. Logs go to backend.log / frontend.log.
+:route_start
+if /i "%TARGET%"=="dev"  goto start_dev
+if /i "%TARGET%"=="prod" goto start_prod
+goto help
+
+:route_stop
+if /i "%TARGET%"=="dev"  goto stop_dev
+if /i "%TARGET%"=="prod" goto stop_prod
+call :do_status
+goto help
+
+:route_restart
+if /i "%TARGET%"=="dev"  goto restart_dev
+if /i "%TARGET%"=="prod" goto restart_prod
+echo   Usage: opensign restart dev ^| opensign restart prod
+exit /b 1
+
+:restart_dev
+call :stop_dev
+timeout /t 2 /nobreak >nul
+goto start_dev
+
+:restart_prod
+call :stop_prod
+timeout /t 2 /nobreak >nul
+goto start_prod
+
 :: ============================================================================
+:start_dev
 if not exist "%VENV_PYTHONW%" (
     echo   ERROR: backend venv not found at %VENV_PYTHONW%
-    echo   Create it:  python -m venv backend\.venv
-    echo   Then:       backend\.venv\Scripts\pip install -r backend\requirements.txt
+    echo   Set it up first ^(see README^): python -m venv backend\.venv
     exit /b 1
 )
-
-:: --- Backend (FastAPI :6101) ---
 call :find_pid %BACKEND_PORT%
 if defined RUNNING_PID (
-    echo   Backend  already running on %BACKEND_PORT% ^(PID: !RUNNING_PID!^).
+    echo   Backend already running on %BACKEND_PORT% ^(PID: !RUNNING_PID!^).
 ) else (
-    :: clear any stale OpenSign backend that failed to bind, then start headless
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%KILL_HELPER%" -Quiet > nul 2>&1
-    echo   Starting backend  ^(uvicorn^) on %BACKEND_PORT%...
+    echo   Starting backend ^(uvicorn^) on %BACKEND_PORT%...
     start "" /b "%VENV_PYTHONW%" -m uvicorn app.main:app --host 0.0.0.0 --port %BACKEND_PORT% --app-dir backend > "%BACKEND_LOG%" 2>&1
 )
-
-:: --- Frontend (Vite :6100) ---
 call :find_pid %FRONTEND_PORT%
 if defined RUNNING_PID (
-    echo   Frontend already running on %FRONTEND_PORT% ^(PID: !RUNNING_PID!^).
+    echo   Vite dev server already running on %FRONTEND_PORT% ^(PID: !RUNNING_PID!^).
 ) else (
     echo   Starting frontend ^(Vite^) on %FRONTEND_PORT%...
     wscript "%FRONTEND_VBS%"
 )
-
-:: --- Wait for both ports to come up (fast: ~few seconds each) ---
-set /a ELAPSED=0
-echo   Waiting for servers...
-:start_wait
-ping 127.0.0.1 -n 3 > nul
-set /a ELAPSED+=2
-set "BACK_UP="
-set "FRONT_UP="
-call :find_pid %BACKEND_PORT%
-if defined RUNNING_PID set "BACK_UP=1"
-call :find_pid %FRONTEND_PORT%
-if defined RUNNING_PID set "FRONT_UP=1"
-if defined BACK_UP if defined FRONT_UP goto start_success
-if !ELAPSED! geq 40 goto start_timeout
-goto start_wait
-
-:start_success
+call :wait_both
 echo.
-echo   OpenSign is running ^(both servers up in !ELAPSED!s^).
-echo   Kiosk:  http://localhost:%FRONTEND_PORT%/
-echo   Admin:  http://localhost:%FRONTEND_PORT%/admin
-echo   Logs:   backend.log / frontend.log   ^(or:  opensign log^)
+echo   DEV is up ^(Vite hot-reload^).
+echo     Kiosk:  http://localhost:%FRONTEND_PORT%/
+echo     Admin:  http://localhost:%FRONTEND_PORT%/admin
 echo.
-echo   Use 'opensign stop' to shut down.
-echo.
-exit /b 0
-
-:start_timeout
-echo.
-echo   Servers did not both come up within !ELAPSED!s.
-if not defined BACK_UP  echo     - backend  :%BACKEND_PORT% not listening - see backend.log
-if not defined FRONT_UP echo     - frontend :%FRONTEND_PORT% not listening - see frontend.log
-echo   Try 'opensign verbose' to see backend errors live, or 'opensign log'.
-echo.
-exit /b 1
-
-:: ============================================================================
-:stop
-::   Stops both servers. Only ever acts on PIDs listening on the two hard-coded
-::   ports, plus a narrow command-line match for any stale backend. No broad
-::   match - cannot touch any other project's servers.
-:: ============================================================================
-set "FOUND_SOMETHING=0"
-
-call :find_pid %FRONTEND_PORT%
-if defined RUNNING_PID (
-    echo   Stopping frontend on %FRONTEND_PORT% ^(PID: !RUNNING_PID!^)...
-    taskkill /F /T /PID !RUNNING_PID! > nul 2>&1
-    set "FOUND_SOMETHING=1"
-)
-
-call :find_pid %BACKEND_PORT%
-if defined RUNNING_PID (
-    echo   Stopping backend on %BACKEND_PORT% ^(PID: !RUNNING_PID!^)...
-    taskkill /F /T /PID !RUNNING_PID! > nul 2>&1
-    set "FOUND_SOMETHING=1"
-)
-
-:: Narrow stale-backend cleanup (pythonw running OpenSign's uvicorn, by command
-:: line only - kills nothing if there's no match).
-powershell -NoProfile -ExecutionPolicy Bypass -File "%KILL_HELPER%"
-if errorlevel 1 set "FOUND_SOMETHING=1"
-
-if "!FOUND_SOMETHING!"=="0" (
-    echo   Nothing running on %FRONTEND_PORT% or %BACKEND_PORT%.
-) else (
-    echo   Stopped.
-)
+echo   For a real display, run PROD instead:  opensign start prod
 exit /b 0
 
 :: ============================================================================
-:restart
-:: ============================================================================
-call :stop
-echo.
-ping 127.0.0.1 -n 3 > nul
-call :start
-exit /b 0
-
-:: ============================================================================
-:status
-:: ============================================================================
-echo.
-echo   OpenSign dev servers
-echo   ====================
-call :find_pid %BACKEND_PORT%
-if defined RUNNING_PID ( echo   Backend  :%BACKEND_PORT%   RUNNING ^(PID: !RUNNING_PID!^) ) else ( echo   Backend  :%BACKEND_PORT%   stopped )
-call :find_pid %FRONTEND_PORT%
-if defined RUNNING_PID ( echo   Frontend :%FRONTEND_PORT%   RUNNING ^(PID: !RUNNING_PID!^) ) else ( echo   Frontend :%FRONTEND_PORT%   stopped )
-echo.
-echo   Kiosk:  http://localhost:%FRONTEND_PORT%/
-echo   Admin:  http://localhost:%FRONTEND_PORT%/admin
-echo.
-exit /b 0
-
-:: ============================================================================
-:verbose
-::   Runs the BACKEND in the foreground with live output (Ctrl+C to stop), while
-::   the frontend runs headless. Use this to watch Python tracebacks directly.
-:: ============================================================================
-call :find_pid %BACKEND_PORT%
-if defined RUNNING_PID (
-    echo   Backend already running headless ^(PID: !RUNNING_PID!^).
-    echo   Stop it first with 'opensign stop' before running verbose.
+:start_prod
+if not exist "%VENV_PYTHONW%" (
+    echo   ERROR: backend venv not found at %VENV_PYTHONW%
+    echo   Set it up first ^(see README^).
     exit /b 1
 )
-
-:: bring the frontend up headless if it isn't already
-call :find_pid %FRONTEND_PORT%
-if not defined RUNNING_PID (
-    echo   Starting frontend ^(Vite^) on %FRONTEND_PORT% headless...
-    wscript "%FRONTEND_VBS%"
+call :do_build
+if errorlevel 1 (
+    echo   [X] build failed - leaving any running server untouched.
+    exit /b 1
 )
-
+:: (Re)start the backend so it mounts the freshly built dist\.
+call :kill_port %BACKEND_PORT% "backend"
+echo   Starting backend ^(uvicorn, serving the built app^) on %BACKEND_PORT%...
+start "" /b "%VENV_PYTHONW%" -m uvicorn app.main:app --host 0.0.0.0 --port %BACKEND_PORT% --app-dir backend > "%BACKEND_LOG%" 2>&1
+call :wait_backend
 echo.
-echo   Starting backend in verbose mode on %BACKEND_PORT%...
-echo   Logs appear below. Press Ctrl+C to stop the backend.
-echo   ================================================
+echo   PROD is up - built app + API from the backend alone on %BACKEND_PORT% ^(no Vite, no HMR^).
+echo     Local:  http://localhost:%BACKEND_PORT%/   ^(admin: /admin^)
+echo     LAN  :  point the kiosk display at  http://^<this-PC-IP^>:%BACKEND_PORT%/
 echo.
-"%VENV_PYTHON%" -m uvicorn app.main:app --host 0.0.0.0 --port %BACKEND_PORT% --app-dir backend
+echo   Re-run 'opensign start prod' after frontend changes to rebuild + refresh.
 exit /b 0
 
 :: ============================================================================
-:log
-::   Follows both server logs live (recent lines first). Ctrl+C to stop.
+:stop_dev
+call :kill_port %FRONTEND_PORT% "dev server (Vite)"
+if errorlevel 1 ( echo   Dev server ^(Vite %FRONTEND_PORT%^) is not running. ) else ( echo   Dev server stopped. )
+call :find_pid %BACKEND_PORT%
+if defined RUNNING_PID echo   ^(Backend %BACKEND_PORT% left up - it also serves PROD/the kiosk. 'stop prod' stops it.^)
+exit /b 0
+
 :: ============================================================================
+:stop_prod
+call :kill_port %BACKEND_PORT% "backend (prod)"
+set "STOPPED_BACK=!ERRORLEVEL!"
+:: narrow stale-backend cleanup (pythonw running THIS project's uvicorn, by
+:: command line only - kills nothing if there is no match)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%KILL_HELPER%" >nul 2>&1
+if "!STOPPED_BACK!"=="0" ( echo   Prod backend stopped. ) else ( echo   Backend ^(%BACKEND_PORT%^) was not running. )
+call :find_pid %FRONTEND_PORT%
+if defined RUNNING_PID echo   ^(Dev server %FRONTEND_PORT% still running. 'stop dev' stops it.^)
+exit /b 0
+
+:: ============================================================================
+:do_build
+echo   Building the production frontend ^(npm run build^)...
+pushd "%FRONTEND_DIR%"
+call npm run build
+set "BUILD_RC=!ERRORLEVEL!"
+popd
+if not "!BUILD_RC!"=="0" exit /b 1
+echo   [OK] Built to frontend\dist\
+exit /b 0
+
+:: ============================================================================
+:do_status
+call :find_pid %FRONTEND_PORT%
+set "VITE_PID=!RUNNING_PID!"
+call :find_pid %BACKEND_PORT%
+set "BACK_PID=!RUNNING_PID!"
+echo.
+echo   OpenSign
+echo   ========
+if defined VITE_PID ( echo   DEV  frontend ^(Vite^) :%FRONTEND_PORT%   RUNNING ^(PID: !VITE_PID!^) ) else ( echo   DEV  frontend ^(Vite^) :%FRONTEND_PORT%   stopped )
+if defined BACK_PID ( echo   backend / API        :%BACKEND_PORT%   RUNNING ^(PID: !BACK_PID!^) ) else ( echo   backend / API        :%BACKEND_PORT%   stopped )
+echo.
+if defined VITE_PID echo     Dev  view:  http://localhost:%FRONTEND_PORT%/
+if defined BACK_PID echo     Prod view:  http://localhost:%BACKEND_PORT%/   ^(kiosk: http://^<this-PC-IP^>:%BACKEND_PORT%/^)
+echo.
+exit /b 0
+
+:: ============================================================================
+:do_log
 if not exist "%BACKEND_LOG%" if not exist "%FRONTEND_LOG%" (
-    echo   No logs yet. Start the servers first with 'opensign start'.
+    echo   No logs yet. Start a server first ^(opensign start dev^).
     exit /b 1
 )
-echo.
 echo   Following backend.log + frontend.log. Press Ctrl+C to stop.
 echo   ================================================
-echo.
 powershell -NoProfile -Command "Get-Content -Path '%BACKEND_LOG%','%FRONTEND_LOG%' -Tail 20 -Wait"
 exit /b 0
 
 :: ============================================================================
-:find_pid
-::   %1 = port (a hard-coded literal). Sets RUNNING_PID to the PID LISTENING on
-::   that exact port, or clears it. Never matches more than one port: the
-::   findstr needle is ":<port> " with a trailing space, and the port is always
-::   a literal from this script, never user/derived input.
+:wait_backend
+set /a WB=0
+:wb_loop
+call :find_pid %BACKEND_PORT%
+if defined RUNNING_PID exit /b 0
+ping 127.0.0.1 -n 2 >nul
+set /a WB+=1
+if !WB! geq 30 exit /b 1
+goto wb_loop
+
 :: ============================================================================
+:wait_both
+set /a WBT=0
+:wbt_loop
+set "B_UP="
+set "F_UP="
+call :find_pid %BACKEND_PORT%
+if defined RUNNING_PID set "B_UP=1"
+call :find_pid %FRONTEND_PORT%
+if defined RUNNING_PID set "F_UP=1"
+if defined B_UP if defined F_UP exit /b 0
+ping 127.0.0.1 -n 2 >nul
+set /a WBT+=1
+if !WBT! geq 30 exit /b 1
+goto wbt_loop
+
+:: ============================================================================
+:kill_port
+:: %1 = port (hard-coded literal), %2 = label. Kills ONLY the PID LISTENING on
+:: that exact port. Not found / blank = no-op (exit /b 1), never a broad match.
+call :find_pid %~1
+if defined RUNNING_PID (
+    echo   Stopping %~2 on %~1 ^(PID: !RUNNING_PID!^)...
+    taskkill /F /T /PID !RUNNING_PID! >nul 2>&1
+    exit /b 0
+)
+exit /b 1
+
+:: ============================================================================
+:find_pid
+:: %1 = port (hard-coded literal). Sets RUNNING_PID to the PID LISTENING on that
+:: exact port, or clears it. needle is ":<port> " with trailing space; the port
+:: is always a literal from this script, never user input.
 set "RUNNING_PID="
 for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr "LISTENING" ^| findstr ":%~1 "') do (
     set "RUNNING_PID=%%a"
@@ -231,24 +243,29 @@ exit /b 0
 
 :: ============================================================================
 :help
-:: ============================================================================
 echo.
-echo   OpenSign Dev Server Manager
-echo   ===========================
+echo   OpenSign - server manager ^(Windows^)
+echo   ===================================
 echo.
-echo   Usage: opensign [command]
+echo   Usage: opensign ^<command^> [dev^|prod]
 echo.
-echo     start     Start both dev servers headless (frontend %FRONTEND_PORT% + backend %BACKEND_PORT%)
-echo     stop      Stop both (only ever touches those two ports)
-echo     restart   Stop, then start
-echo     status    Show whether each server is running
-echo     verbose   Run backend in foreground with live logs (Ctrl+C); frontend stays headless
-echo     log       Follow both server logs live (Ctrl+C)
-echo     help      This help
+echo   DEVELOPMENT ^(Vite hot-reload %FRONTEND_PORT% + API %BACKEND_PORT%^):
+echo     start dev        start the dev servers
+echo     stop dev         stop the Vite dev server ^(leaves the backend up^)
 echo.
-echo   Aliases:  up = start      down, drop = stop
+echo   PRODUCTION ^(what a kiosk runs - built app + API on %BACKEND_PORT%, no HMR^):
+echo     start prod       build, then serve the built app + API on %BACKEND_PORT%
+echo     stop prod        stop the backend / prod server
 echo.
-echo   Servers run HEADLESS and survive closing this terminal. After a PC sleep
-echo   drops them, just run:  opensign start
+echo   EITHER:
+echo     status           what's running, plus the URLs
+echo     build            build the frontend without starting anything
+echo     restart dev^|prod stop then start that mode
+echo     log              follow the logs live
+echo     help             this help
+echo.
+echo   A display should point at the PROD URL ^(%BACKEND_PORT%^), never the Vite dev
+echo   server ^(%FRONTEND_PORT%^): the dev server's hot-reload socket drops over a LAN
+echo   and forces the page to reload every minute. The built app has no such socket.
 echo.
 exit /b 0

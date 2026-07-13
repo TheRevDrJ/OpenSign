@@ -49,18 +49,25 @@ export the whole configuration to a `.json` layout and load it back later.
 Both the kiosk and the admin are reachable from any device on the local network, so you
 can configure the wall from your desk.
 
-## Running it (dev)
+## Running it
 
-Two dev servers: the Vite **frontend on 6100** and the FastAPI **backend on 6101**
-(Vite proxies `/api` to it). Clone, set up once, then start — on either platform.
+There are **two modes**, managed by one script (`opensign.sh` on macOS/Linux,
+`opensign.bat` on Windows):
+
+- **dev** — Vite hot-reload frontend on **6100** + FastAPI backend on **6101**. For
+  developing; changes appear live.
+- **prod** — the **built** frontend served together with the API from the backend
+  alone on **6101**. No Vite, no hot-reload socket. **This is what a display should
+  run** — a kiosk pointed at the dev server over a LAN reloads itself every minute
+  when Vite's hot-reload WebSocket idles out; the built app has no such socket.
 
 ### macOS / Linux
 
 ```sh
-./setup.sh            # one-time: checks Node 20+ / Python 3.10+, builds the
-                      # backend venv, installs both halves
-./opensign.sh start   # start both servers (survives closing the terminal)
-                      # also: stop | restart | status | verbose | log
+./setup.sh                 # one-time: Node 20+ / Python 3.10+, venv, deps
+./opensign.sh start dev    # develop  → http://localhost:6100/
+./opensign.sh start prod   # display  → build + serve on http://<lan-ip>:6101/
+# also: stop dev | stop prod | status | build | restart dev|prod | log
 ```
 
 ### Windows
@@ -71,26 +78,15 @@ python -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 cd frontend && npm install && cd ..
 
-:: then run both servers (or just double-click begin.bat)
-opensign.bat start
-:: also: stop | restart | status | verbose | log     (end.bat = stop)
+opensign.bat start dev     :: develop   (or double-click nothing — this is CLI)
+opensign.bat start prod    :: display   (or just double-click begin.bat)
+:: also: stop dev | stop prod | status | build | restart dev|prod | log
 ```
 
-## Running it on a display (production)
-
-The `dev` servers above use Vite's hot-reload, which keeps a live WebSocket to the
-browser. A kiosk pointed at that over a LAN will **reload itself every minute or so**
-when the socket idles out. So a display machine should run the **built** app, which
-has no such socket — served, together with the API, from the backend on **one port**:
-
-```sh
-./opensign.sh serve      # build the frontend, serve app + API from :6101
-```
-
-Then point the display's browser at the printed **LAN URL** (`http://<host>:6101/`),
-not the dev server on 6100. Re-run `./opensign.sh serve` after any frontend change to
-rebuild. (`./opensign.sh build` just builds without serving.) On Windows, `npm --prefix
-frontend run build` then run the backend — it serves `frontend/dist/` automatically.
+Point a **display** at the **prod** URL on **6101**, never the dev server on 6100.
+Re-run `start prod` after any frontend change to rebuild. `build` builds without
+starting anything. Bare `start` / `stop` (no `dev`/`prod`) just print usage/status,
+so they can't be fat-fingered into stopping the wrong thing.
 
 ## License
 
