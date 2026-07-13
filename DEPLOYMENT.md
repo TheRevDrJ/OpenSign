@@ -39,21 +39,15 @@ kiosk URL. For a display that has to sit there for weeks and just work:
 - [ ] **Auto-start the browser to that URL on boot**, fullscreen — so the screen
       comes back on its own after a reboot or power blip.
 - [ ] **Reboot the display nightly.** **(Required.)** A display box left up for many
-      days accumulates driver / network-stack cruft — most visibly a **WiFi adapter
-      that starts dropping the connection when idle** (the sign blanks, then recovers
-      when something wakes the link). A scheduled nightly reboot clears it before it
-      can fail during the day.
+      days can develop a **machine-level fatigue** that stops it reaching the server —
+      *even though its network connection itself still tests fine* (a speed test on the
+      box passes). We hit this on one display after days of uptime; the cause was **not**
+      the WiFi link, and a reboot cleared it every time. A scheduled nightly reboot
+      clears whatever accumulates before it can fail during the day.
       - Windows: Task Scheduler → daily `shutdown /r /t 0` at ~4:00am.
       - Linux: a root cron entry, e.g. `0 4 * * * /sbin/reboot`.
-- [ ] **Disable sleep / power-saving** — display, disk, and especially the **network
-      adapter**. A dozing screen or NIC looks like a broken sign.
-      - Windows: High-Performance power plan; Device Manager → the network adapter →
-        Power Management → uncheck "Allow the computer to turn off this device to
-        save power." On WiFi, also set Wireless Adapter → Maximum Performance.
-- [ ] **Prefer a wired connection.** WiFi is the usual source of "the sign went
-      blank" flakiness; a cable sidesteps it. If WiFi is unavoidable, the nightly
-      reboot + disabled adapter power-saving are the safety net — and a cheap USB
-      WiFi dongle can replace a flaky built-in adapter.
+- [ ] **Disable sleep / power-saving** — display and disk (so the screen never blanks
+      on its own). Set a High-Performance / "never sleep" power plan.
 
 ## Notes
 
@@ -63,6 +57,8 @@ kiosk URL. For a display that has to sit there for weeks and just work:
   displays pick it up on their next load — no need to touch each screen.
 - **Config lives on the server** (`data/config.json`) — back it up with the project.
   Changes made in admin apply to every display within ~5 seconds.
-- **Troubleshooting "can't be reached" on one display but not others:** that's a
-  network/reachability issue on that display (usually WiFi power-saving or a
-  degrading adapter), not the OpenSign server. See the nightly-reboot item above.
+- **Troubleshooting "can't be reached" on one display but not others:** the problem is
+  on that display, not the OpenSign server (the server can't be up for one and down for
+  another). Check whether it's even the network: run a **speed test on that box** — if
+  it passes, connectivity is fine and you're looking at machine-level fatigue (see the
+  nightly-reboot item), not WiFi. A reboot usually clears it.
