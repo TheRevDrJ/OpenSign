@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { mediaSrc } from './api'
+import { mediaSrc, serverNow } from './api'
 import type { KioskConfig, WidgetSize } from './config'
 
 // Predefined widget scales — the admin sets one of these per widget.
@@ -11,17 +11,22 @@ export const SIZE_SCALE: Record<WidgetSize, number> = {
 }
 
 // Live "now", refreshed on an interval (1s for the clock, slower for the date).
-function useNow(intervalMs: number) {
-  const [now, setNow] = useState(() => new Date())
+// `useServer` reads the shared server clock (serverNow()) instead of this
+// machine's, so time widgets agree across displays and are right even if the
+// display box's own clock is off.
+function useNow(intervalMs: number, useServer: boolean) {
+  const [now, setNow] = useState(() => new Date(useServer ? serverNow() : Date.now()))
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), intervalMs)
+    const read = () => setNow(new Date(useServer ? serverNow() : Date.now()))
+    read()
+    const t = setInterval(read, intervalMs)
     return () => clearInterval(t)
-  }, [intervalMs])
+  }, [intervalMs, useServer])
   return now
 }
 
-function ClockWidget() {
-  const now = useNow(1000)
+function ClockWidget({ useServer }: { useServer: boolean }) {
+  const now = useNow(1000, useServer)
   const h = now.getHours() % 12 || 12
   const m = String(now.getMinutes()).padStart(2, '0')
   const date = now.toLocaleDateString(undefined, {
@@ -39,8 +44,8 @@ function ClockWidget() {
   )
 }
 
-function CalendarWidget() {
-  const now = useNow(30000)
+function CalendarWidget({ useServer }: { useServer: boolean }) {
+  const now = useNow(30000, useServer)
   const monthYear = now.toLocaleDateString(undefined, {
     month: 'short',
     year: 'numeric',
@@ -62,12 +67,14 @@ function CountdownWidget({
   label,
   target,
   onExpire,
+  useServer,
 }: {
   label: string
   target: string
   onExpire?: () => void
+  useServer: boolean
 }) {
-  const now = useNow(1000)
+  const now = useNow(1000, useServer)
   const [h, m] = target.split(':').map(Number)
   const t = new Date(now)
   if (Number.isFinite(h) && Number.isFinite(m)) t.setHours(h, m, 0, 0)
@@ -143,11 +150,12 @@ export default function Widgets({
   onCountdownExpire?: () => void
 }) {
   const { clock, calendar, countdown, giving } = config.widgets
+  const useServer = config.clockSource !== 'device'
   return (
     <div className="widget-layer">
       {clock.enabled && (
         <div className="widget-slot" style={slotStyle(clock, SIZE_SCALE[clock.size])}>
-          <ClockWidget />
+          <ClockWidget useServer={useServer} />
         </div>
       )}
       {calendar.enabled && (
@@ -155,7 +163,7 @@ export default function Widgets({
           className="widget-slot"
           style={slotStyle(calendar, SIZE_SCALE[calendar.size])}
         >
-          <CalendarWidget />
+          <CalendarWidget useServer={useServer} />
         </div>
       )}
       {countdown.enabled && (
@@ -167,6 +175,7 @@ export default function Widgets({
             label={countdown.label}
             target={countdown.target}
             onExpire={onCountdownExpire}
+            useServer={useServer}
           />
         </div>
       )}

@@ -11,6 +11,7 @@ DEFAULT_CONFIG = {
     "light": False,
     "orientation": "landscape",
     "keepAwake": False,
+    "clockSource": "server",
     "text": {
         "headline": "The Honed Edge",
         "subtext": "Wisdom helps one to succeed. — Ecclesiastes 10:10",

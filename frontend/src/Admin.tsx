@@ -308,7 +308,17 @@ export default function Admin() {
                 onChange={(v) => patch({ keepAwake: v })}
                 label="Keep display awake"
               />
+              <Toggle
+                checked={config.clockSource !== 'device'}
+                onChange={(v) => patch({ clockSource: v ? 'server' : 'device' })}
+                label="Clock uses server time"
+              />
             </div>
+            <p className="os-tip">
+              <strong>Clock uses server time</strong> keeps the clock, calendar, and
+              countdown in agreement across every display — and correct even if this
+              box's own clock is off. Turn it off to use this display's local clock.
+            </p>
             <p className="os-tip">
               On the display, press <kbd>F11</kbd> (or launch the browser with{' '}
               <code>--kiosk</code>) for true fullscreen.

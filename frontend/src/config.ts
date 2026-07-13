@@ -13,6 +13,10 @@ export type Orientation = 'landscape' | 'portrait'
 /** Predefined widget sizes (the scale factors live in Widgets.tsx). */
 export type WidgetSize = 'sm' | 'md' | 'lg' | 'xl'
 
+/** Which clock drives the on-screen time widgets: the shared server clock (so
+ *  every display agrees) or this display's own machine clock. */
+export type ClockSource = 'server' | 'device'
+
 export interface TextConfig {
   headline: string
   subtext: string
@@ -72,6 +76,8 @@ export interface KioskConfig {
   orientation: Orientation
   /** hold a Screen Wake Lock on the kiosk so the display never sleeps. */
   keepAwake: boolean
+  /** source for the on-screen time (clock / calendar / countdown widgets). */
+  clockSource: ClockSource
   text: TextConfig
   images: ImagesConfig
   widgets: WidgetsConfig
@@ -89,6 +95,7 @@ export const DEFAULT_CONFIG: KioskConfig = {
   light: false,
   orientation: 'landscape',
   keepAwake: false,
+  clockSource: 'server',
   text: {
     headline: 'The Honed Edge',
     subtext: 'Wisdom helps one to succeed. — Ecclesiastes 10:10',
