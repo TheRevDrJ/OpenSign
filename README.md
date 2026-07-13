@@ -51,23 +51,17 @@ can configure the wall from your desk.
 
 ## Running it
 
-There are **two modes**, managed by one script (`opensign.sh` on macOS/Linux,
-`opensign.bat` on Windows):
-
-- **dev** — Vite hot-reload frontend on **6100** + FastAPI backend on **6101**. For
-  developing; changes appear live.
-- **prod** — the **built** frontend served together with the API from the backend
-  alone on **6101**. No Vite, no hot-reload socket. **This is what a display should
-  run** — a kiosk pointed at the dev server over a LAN reloads itself every minute
-  when Vite's hot-reload WebSocket idles out; the built app has no such socket.
+**One server on port 6101.** The FastAPI backend serves both the built frontend and
+the API — the same artifact in development and on the kiosk, so there's no "worked in
+dev, broke in prod." Managed by one script (`opensign.sh` on macOS/Linux,
+`opensign.bat` on Windows).
 
 ### macOS / Linux
 
 ```sh
-./setup.sh                 # one-time: Node 20+ / Python 3.10+, venv, deps
-./opensign.sh start dev    # develop  → http://localhost:6100/
-./opensign.sh start prod   # display  → build + serve on http://<lan-ip>:6101/
-# also: stop dev | stop prod | status | build | restart dev|prod | log
+./setup.sh             # one-time: Node 20+ / Python 3.10+, venv, deps
+./opensign.sh start    # build the frontend, then serve it + the API on :6101
+# also: stop | build | watch | status | restart | log
 ```
 
 ### Windows
@@ -78,15 +72,14 @@ python -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 cd frontend && npm install && cd ..
 
-opensign.bat start dev     :: develop   (or double-click nothing — this is CLI)
-opensign.bat start prod    :: display   (or just double-click begin.bat)
-:: also: stop dev | stop prod | status | build | restart dev|prod | log
+opensign.bat start     :: build + serve on :6101   (or double-click begin.bat)
+:: also: stop | build | watch | status | restart | log
 ```
 
-Point a **display** at the **prod** URL on **6101**, never the dev server on 6100.
-Re-run `start prod` after any frontend change to rebuild. `build` builds without
-starting anything. Bare `start` / `stop` (no `dev`/`prod`) just print usage/status,
-so they can't be fat-fingered into stopping the wrong thing.
+Point the **display** at the LAN URL it prints (`http://<lan-ip>:6101/`). After
+changing frontend code, re-run `build` (or use `watch`, which serves and auto-rebuilds
+on save — just refresh the page). Need hot-reload for heavy UI work? `cd frontend && npm
+run dev` still works on 6100 — it's just not part of this managed workflow.
 
 ## License
 
