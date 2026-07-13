@@ -52,23 +52,33 @@ function Slideshow({
       return
     }
     listFolder(folder).then((r) => {
-      if (alive) {
-        setFiles(r.files)
-        setIdx(0)
-      }
+      if (alive) setFiles(r.files)
     })
     return () => {
       alive = false
     }
   }, [folder])
 
+  // Sync across displays WITHOUT a server push: derive the index from wall-clock
+  // time, so every display showing the same folder at the same interval lands on
+  // the same image at the same second (machine clocks are NTP-synced). A display
+  // that joins or reconnects mid-cycle jumps straight to the current image, in
+  // step — no per-machine counter that restarts at 0. The tick re-aligns to each
+  // period boundary (measured from the epoch) so the flip is simultaneous, not
+  // phase-shifted by when each display happened to load.
   useEffect(() => {
-    if (files.length < 2) return
-    const t = setInterval(
-      () => setIdx((i) => (i + 1) % files.length),
-      Math.max(1000, intervalMs),
-    )
-    return () => clearInterval(t)
+    const period = Math.max(1000, intervalMs)
+    if (files.length < 2) {
+      setIdx(0)
+      return
+    }
+    let timer: ReturnType<typeof setTimeout>
+    const tick = () => {
+      setIdx(Math.floor(Date.now() / period) % files.length)
+      timer = setTimeout(tick, period - (Date.now() % period) + 20)
+    }
+    tick()
+    return () => clearTimeout(timer)
   }, [files, intervalMs])
 
   if (!folder) {
