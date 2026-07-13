@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { mediaSrc, serverNow } from './api'
+import { mediaSrc, serverNow, serverTzOffsetMinutes } from './api'
 import type { KioskConfig, WidgetSize } from './config'
 
 // Predefined widget scales — the admin sets one of these per widget.
@@ -10,16 +10,25 @@ export const SIZE_SCALE: Record<WidgetSize, number> = {
   xl: 2.5,
 }
 
-// Live "now", refreshed on an interval (1s for the clock, slower for the date).
-// `useServer` reads the shared server clock (serverNow()) instead of this
-// machine's, so time widgets agree across displays and are right even if the
-// display box's own clock is off.
+// Returns a Date deliberately SHIFTED so its UTC fields (getUTCHours,
+// toLocale…({timeZone:'UTC'}), setUTCHours) read the intended WALL CLOCK:
+//   server mode — the server's wall clock (its instant + its UTC offset), so
+//     every display shows the same time regardless of its own timezone;
+//   device mode — this machine's own local wall clock (unchanged behavior).
+// Reading UTC-of-a-shifted-Date is how we render a chosen timezone without an
+// IANA name; all the time widgets read UTC fields for exactly this reason.
+function computeNow(useServer: boolean): Date {
+  if (useServer) return new Date(serverNow() + serverTzOffsetMinutes() * 60000)
+  const n = Date.now()
+  return new Date(n - new Date(n).getTimezoneOffset() * 60000)
+}
+
+// Live "now" (shifted per computeNow), refreshed on an interval.
 function useNow(intervalMs: number, useServer: boolean) {
-  const [now, setNow] = useState(() => new Date(useServer ? serverNow() : Date.now()))
+  const [now, setNow] = useState(() => computeNow(useServer))
   useEffect(() => {
-    const read = () => setNow(new Date(useServer ? serverNow() : Date.now()))
-    read()
-    const t = setInterval(read, intervalMs)
+    setNow(computeNow(useServer))
+    const t = setInterval(() => setNow(computeNow(useServer)), intervalMs)
     return () => clearInterval(t)
   }, [intervalMs, useServer])
   return now
@@ -27,9 +36,10 @@ function useNow(intervalMs: number, useServer: boolean) {
 
 function ClockWidget({ useServer }: { useServer: boolean }) {
   const now = useNow(1000, useServer)
-  const h = now.getHours() % 12 || 12
-  const m = String(now.getMinutes()).padStart(2, '0')
+  const h = now.getUTCHours() % 12 || 12
+  const m = String(now.getUTCMinutes()).padStart(2, '0')
   const date = now.toLocaleDateString(undefined, {
+    timeZone: 'UTC',
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -47,14 +57,18 @@ function ClockWidget({ useServer }: { useServer: boolean }) {
 function CalendarWidget({ useServer }: { useServer: boolean }) {
   const now = useNow(30000, useServer)
   const monthYear = now.toLocaleDateString(undefined, {
+    timeZone: 'UTC',
     month: 'short',
     year: 'numeric',
   })
-  const weekday = now.toLocaleDateString(undefined, { weekday: 'short' })
+  const weekday = now.toLocaleDateString(undefined, {
+    timeZone: 'UTC',
+    weekday: 'short',
+  })
   return (
     <div className="glass widget widget-calendar">
       <div className="widget-calendar__monthyear">{monthYear}</div>
-      <div className="widget-calendar__day">{now.getDate()}</div>
+      <div className="widget-calendar__day">{now.getUTCDate()}</div>
       <div className="widget-calendar__weekday">{weekday}</div>
     </div>
   )
@@ -76,8 +90,10 @@ function CountdownWidget({
 }) {
   const now = useNow(1000, useServer)
   const [h, m] = target.split(':').map(Number)
+  // `now` is shifted so its UTC fields are the chosen wall clock; set the target
+  // time-of-day on that same frame. The now↔target difference is shift-invariant.
   const t = new Date(now)
-  if (Number.isFinite(h) && Number.isFinite(m)) t.setHours(h, m, 0, 0)
+  if (Number.isFinite(h) && Number.isFinite(m)) t.setUTCHours(h, m, 0, 0)
   const totalSec = Math.max(0, Math.floor((t.getTime() - now.getTime()) / 1000))
 
   // Auto-remove GRACE_MS after the timer hits zero — but only if it actually

@@ -39,10 +39,13 @@ def health():
 
 @app.get("/api/time")
 def server_time():
-    """The server's clock (epoch milliseconds). Displays derive the slideshow
-    index from THIS, not their own machine clocks, so multiple screens stay in
-    lockstep even when their local clocks drift a few seconds apart."""
-    return {"now": time.time() * 1000}
+    """The server's clock: epoch milliseconds plus its current UTC offset in
+    minutes. Displays use `now` to keep the slideshow index in lockstep, and
+    `offset` to render the on-screen clock in the SERVER's timezone — so
+    "server time" shows the same wall clock on every display, not each display's
+    own local time."""
+    lt = time.localtime()
+    return {"now": time.time() * 1000, "offset": (lt.tm_gmtoff or 0) // 60}
 
 
 @app.get("/api/config")

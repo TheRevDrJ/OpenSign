@@ -50,10 +50,17 @@ export async function saveConfig(config: KioskConfig): Promise<boolean> {
 // few seconds apart (NTP keeps each near true time, but not near each other).
 
 let clockOffset = 0 // serverNow - Date.now(), in ms
+let serverTzOffsetMin = 0 // the server's current UTC offset, in minutes
 
 /** Best estimate of the server's current time (epoch ms). */
 export function serverNow(): number {
   return Date.now() + clockOffset
+}
+
+/** The server's current UTC offset in minutes — used to render "server time"
+ *  in the server's timezone, so every display shows the same wall clock. */
+export function serverTzOffsetMinutes(): number {
+  return serverTzOffsetMin
 }
 
 /** Re-measure the offset to the server clock, correcting for round-trip time. */
@@ -62,12 +69,13 @@ export async function syncClock(): Promise<void> {
     const t0 = Date.now()
     const res = await fetch('/api/time')
     if (!res.ok) return
-    const { now } = await res.json()
+    const { now, offset } = await res.json()
     const t1 = Date.now()
     // server time at t1 ≈ now + half the round-trip
     clockOffset = now + (t1 - t0) / 2 - t1
+    if (typeof offset === 'number') serverTzOffsetMin = offset
   } catch {
-    // transient failure — keep the last known offset
+    // transient failure — keep the last known values
   }
 }
 
