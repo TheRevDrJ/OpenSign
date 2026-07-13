@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getConfig, saveConfig } from './api'
+import { getConfig, saveConfig, syncClock } from './api'
 import { DEFAULT_CONFIG, type KioskConfig } from './config'
 import { getMode } from './modes'
 import Widgets from './Widgets'
@@ -40,6 +40,15 @@ export default function Kiosk() {
       alive = false
       clearInterval(t)
     }
+  }, [])
+
+  // Keep this display's offset to the server clock fresh, so the slideshow index
+  // (derived from server time) stays locked to the other displays regardless of
+  // local clock drift.
+  useEffect(() => {
+    syncClock()
+    const t = setInterval(syncClock, 5 * 60 * 1000)
+    return () => clearInterval(t)
   }, [])
 
   // Keep the display awake while showing, if enabled. The Screen Wake Lock

@@ -5,6 +5,7 @@ machine, which hands back a real filesystem path. Serves the built frontend on a
 single port in production; PyInstaller bundles this into a standalone .exe."""
 
 import json
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -34,6 +35,14 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg"}
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/time")
+def server_time():
+    """The server's clock (epoch milliseconds). Displays derive the slideshow
+    index from THIS, not their own machine clocks, so multiple screens stay in
+    lockstep even when their local clocks drift a few seconds apart."""
+    return {"now": time.time() * 1000}
 
 
 @app.get("/api/config")

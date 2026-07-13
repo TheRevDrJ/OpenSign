@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listFolder, mediaSrc } from '../api'
+import { listFolder, mediaSrc, serverNow } from '../api'
 import type { ImagesFit } from '../config'
 import type { ModeProps } from './types'
 
@@ -59,13 +59,13 @@ function Slideshow({
     }
   }, [folder])
 
-  // Sync across displays WITHOUT a server push: derive the index from wall-clock
-  // time, so every display showing the same folder at the same interval lands on
-  // the same image at the same second (machine clocks are NTP-synced). A display
-  // that joins or reconnects mid-cycle jumps straight to the current image, in
-  // step — no per-machine counter that restarts at 0. The tick re-aligns to each
-  // period boundary (measured from the epoch) so the flip is simultaneous, not
-  // phase-shifted by when each display happened to load.
+  // Sync across displays WITHOUT a server push: derive the index from the shared
+  // SERVER clock (serverNow(), fed by /api/time — see api.ts), so every display
+  // on the same folder+interval lands on the same image at the same instant, even
+  // if their local machine clocks drift a few seconds apart. A display that joins
+  // or reconnects mid-cycle jumps straight to the current image, in step — no
+  // per-machine counter that restarts at 0. The tick re-aligns to each period
+  // boundary (on server time) so flips are simultaneous, not phase-shifted.
   useEffect(() => {
     const period = Math.max(1000, intervalMs)
     if (files.length < 2) {
@@ -74,8 +74,8 @@ function Slideshow({
     }
     let timer: ReturnType<typeof setTimeout>
     const tick = () => {
-      setIdx(Math.floor(Date.now() / period) % files.length)
-      timer = setTimeout(tick, period - (Date.now() % period) + 20)
+      setIdx(Math.floor(serverNow() / period) % files.length)
+      timer = setTimeout(tick, period - (serverNow() % period) + 20)
     }
     tick()
     return () => clearTimeout(timer)

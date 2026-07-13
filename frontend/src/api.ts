@@ -44,6 +44,33 @@ export async function saveConfig(config: KioskConfig): Promise<boolean> {
   }
 }
 
+// --- Server-clock sync ------------------------------------------------------
+// Displays derive the slideshow index from the SERVER's clock, not their own,
+// so multiple screens stay in lockstep even when their machine clocks drift a
+// few seconds apart (NTP keeps each near true time, but not near each other).
+
+let clockOffset = 0 // serverNow - Date.now(), in ms
+
+/** Best estimate of the server's current time (epoch ms). */
+export function serverNow(): number {
+  return Date.now() + clockOffset
+}
+
+/** Re-measure the offset to the server clock, correcting for round-trip time. */
+export async function syncClock(): Promise<void> {
+  try {
+    const t0 = Date.now()
+    const res = await fetch('/api/time')
+    if (!res.ok) return
+    const { now } = await res.json()
+    const t1 = Date.now()
+    // server time at t1 ≈ now + half the round-trip
+    clockOffset = now + (t1 - t0) / 2 - t1
+  } catch {
+    // transient failure — keep the last known offset
+  }
+}
+
 /**
  * Turn a stored value into a loadable <img> src.
  * - a full web URL (http(s):// or data:) → use as-is
