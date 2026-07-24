@@ -3,6 +3,12 @@
   min-height: 100vh;
   padding: clamp(16px, 4vw, 48px);
 }
+/* Branded background image behind the admin panel. Layered over the theme bg
+   colour (fallback if the image is missing); cards sit opaque on top, so text
+   stays readable. Higher specificity than .os-root so it wins the cascade. */
+.os-root.os-admin {
+  background: var(--os-bg) url('/background.png') center / cover no-repeat fixed;
+}
 .os-admin__inner {
   max-width: 720px;
   margin: 0 auto;
