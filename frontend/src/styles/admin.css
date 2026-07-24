@@ -272,6 +272,12 @@
   align-items: center;
   gap: 16px;
   margin-top: 8px;
+  /* encapsulate like the cards, so it sits on an opaque surface over the
+     background image rather than floating on it. */
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: 12px;
+  padding: clamp(16px, 2.5vw, 24px);
 }
 .os-admin__actions .os-pick-btn {
   margin-bottom: 0;
