@@ -8,6 +8,7 @@
 rules_project.md
 STATE.md
 STATE-history.md
+rules_project-history.md
 core_principles.md
 # The bug tracker is private: kept on disk for the workshop, never in the repo
 /docs/bugs.json
