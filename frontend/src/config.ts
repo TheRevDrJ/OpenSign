@@ -1,0 +1,148 @@
+// OpenSign shared config types + defaults.
+// The backend persists a KioskConfig to data/config.json; the admin page edits
+// it; the kiosk reads it and renders the matching mode.
+
+export type ModeId = 'text' | 'images' | 'stop'
+export type ImagesKind = 'single' | 'slideshow'
+/** CSS object-fit: contain = letterbox, cover = fill+crop, fill = stretch. */
+export type ImagesFit = 'contain' | 'cover' | 'fill'
+export type ThemeId = 'honededge' | 'eggshell' | 'seafoam'
+/** Display orientation — drives the admin widget-locator's shape (set manually,
+ *  so a portrait wall can be laid out from a landscape desk). */
+export type Orientation = 'landscape' | 'portrait'
+/** Predefined widget sizes (the scale factors live in Widgets.tsx). */
+export type WidgetSize = 'sm' | 'md' | 'lg' | 'xl'
+
+/** Which clock drives the on-screen time widgets: the shared server clock (so
+ *  every display agrees) or this display's own machine clock. */
+export type ClockSource = 'server' | 'device'
+
+export interface TextConfig {
+  headline: string
+  subtext: string
+  showLogo: boolean
+}
+
+export interface ImagesConfig {
+  /** single = one still image; slideshow = rotate the images in a folder. */
+  kind: ImagesKind
+  /** how the image fills the screen. */
+  fit: ImagesFit
+  /** path/URL to the still image (kind === 'single'). */
+  image: string
+  /** folder of images to rotate (kind === 'slideshow'), resolved by the backend. */
+  folder: string
+  intervalMs: number
+}
+
+// Widgets are an OVERLAY, not a mode — each renders on top of whatever mode is
+// running (e.g. a clock in the corner of a slideshow), independently toggled.
+export interface WidgetConfig {
+  enabled: boolean
+  /** anchor position as screen percentages (0–100); the locator snaps to a 15-point grid. */
+  x: number
+  y: number
+  /** predefined display size. */
+  size: WidgetSize
+}
+
+/** The countdown widget adds a caption and a target time-of-day to count down to. */
+export interface CountdownConfig extends WidgetConfig {
+  /** caption above the timer, e.g. "TIME UNTIL WORSHIP". */
+  label: string
+  /** target time of day, 24h "HH:MM"; counts down to today's occurrence. */
+  target: string
+}
+
+/** The giving widget shows a QR image (served in place, like the Images mode) + a caption. */
+export interface GivingConfig extends WidgetConfig {
+  /** path to the QR image on the display machine, resolved by the backend. */
+  image: string
+  /** caption shown with the code, e.g. "SCAN TO GIVE". */
+  label: string
+}
+
+/** The verse widget's translation: 'BSB' is built in (offline); anything else is
+ *  an API.Bible Bible id, fetched live by the server with the church's own key.
+ *  Any failure (no key, offline, missing verse) shows the BSB text instead. */
+export interface VerseConfig extends WidgetConfig {
+  translation: string
+  /** list entries (osis) this church has skipped from admin; never shown. */
+  skipped: string[]
+}
+
+export interface WidgetsConfig {
+  clock: WidgetConfig
+  calendar: WidgetConfig
+  countdown: CountdownConfig
+  giving: GivingConfig
+  /** verse of the day — one verse per day from the curated set. */
+  verse: VerseConfig
+}
+
+export interface KioskConfig {
+  mode: ModeId
+  theme: ThemeId
+  light: boolean
+  orientation: Orientation
+  /** hold a Screen Wake Lock on the kiosk so the display never sleeps. */
+  keepAwake: boolean
+  /** source for the on-screen time (clock / calendar / countdown widgets). */
+  clockSource: ClockSource
+  /** space widgets that share a column (portrait) / row (landscape) evenly. */
+  evenSpacing: boolean
+  text: TextConfig
+  images: ImagesConfig
+  widgets: WidgetsConfig
+  /** server-only: changes when displays should reload (never saved). */
+  reloadToken?: number
+}
+
+export const THEMES: { id: ThemeId; label: string }[] = [
+  { id: 'honededge', label: 'HonedEdge' },
+  { id: 'eggshell', label: 'Eggshell' },
+  { id: 'seafoam', label: 'Seafoam' },
+]
+
+export const DEFAULT_CONFIG: KioskConfig = {
+  mode: 'text',
+  theme: 'honededge',
+  light: false,
+  orientation: 'landscape',
+  keepAwake: false,
+  clockSource: 'server',
+  evenSpacing: false,
+  text: {
+    headline: 'The Honed Edge',
+    subtext: 'Wisdom helps one to succeed. — Ecclesiastes 10:10',
+    showLogo: true,
+  },
+  images: {
+    kind: 'single',
+    fit: 'contain',
+    image: '',
+    folder: '',
+    intervalMs: 8000,
+  },
+  widgets: {
+    clock: { enabled: false, x: 100, y: 100, size: 'md' },
+    calendar: { enabled: false, x: 100, y: 0, size: 'md' },
+    countdown: {
+      enabled: false,
+      x: 50,
+      y: 50,
+      size: 'lg',
+      label: 'TIME UNTIL WORSHIP',
+      target: '10:45',
+    },
+    giving: {
+      enabled: false,
+      x: 0,
+      y: 100,
+      size: 'md',
+      image: '',
+      label: 'SCAN TO GIVE',
+    },
+    verse: { enabled: false, x: 50, y: 100, size: 'lg', translation: 'BSB', skipped: [] },
+  },
+}

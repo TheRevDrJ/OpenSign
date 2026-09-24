@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 310" width="420" height="310" role="img" aria-label="OpenSign">
+  <title>OpenSign</title>
+  <defs>
+    <linearGradient id="blue-grad" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0%" stop-color="#4A90D9"/><stop offset="100%" stop-color="#1A4A7A"/></linearGradient>
+    <linearGradient id="orange-grad" x1="0.7" y1="0" x2="0.3" y2="1"><stop offset="0%" stop-color="#F5A623"/><stop offset="100%" stop-color="#D4792A"/></linearGradient>
+    <clipPath id="left-half"><rect x="0" y="0" width="210" height="310"/></clipPath>
+    <clipPath id="right-half"><rect x="210" y="0" width="210" height="310"/></clipPath>
+    <clipPath id="oval-clip"><ellipse cx="210" cy="155" rx="200" ry="148"/></clipPath>
+    <mask id="i-knock">
+      <rect x="254" y="76" width="116" height="122" fill="white"/>
+      <circle cx="312" cy="112" r="9" fill="black"/>
+      <rect x="304" y="128" width="16" height="46" rx="6" fill="black"/>
+    </mask>
+  </defs>
+  <g clip-path="url(#oval-clip)">
+    <g clip-path="url(#left-half)"><rect width="420" height="310" fill="url(#blue-grad)"/></g>
+    <g clip-path="url(#right-half)"><rect width="420" height="310" fill="url(#orange-grad)"/></g>
+    <line x1="210" y1="7" x2="210" y2="303" stroke="white" stroke-width="6"/>
+    <!-- Cross on the blue lens -->
+    <g transform="translate(11,0)">
+      <rect x="91" y="72" width="28" height="166" rx="3" fill="white"/>
+      <rect x="48" y="115" width="115" height="28" rx="3" fill="white"/>
+    </g>
+    <!-- Info point: an "i" disc on a little stand — the kiosk you walk up to -->
+    <g transform="translate(-7,0)">
+      <circle cx="312" cy="136" r="54" fill="white" mask="url(#i-knock)"/>
+      <rect x="304" y="190" width="16" height="24" fill="white"/>
+      <rect x="276" y="214" width="72" height="14" rx="6" fill="white"/>
+    </g>
+  </g>
+  <ellipse cx="210" cy="155" rx="200" ry="148" fill="none" stroke="white" stroke-width="4"/>
+</svg>

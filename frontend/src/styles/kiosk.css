@@ -1,0 +1,300 @@
+/* Kiosk display layout. Fullscreen, centered, no chrome, no cursor. */
+.os-kiosk {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: none;
+}
+
+/* Mode: Text — logo + headline + line */
+.mode-text {
+  text-align: center;
+  padding: 4vmin;
+  max-width: 90vw;
+}
+.mode-text__logo {
+  width: min(40vmin, 320px);
+  height: auto;
+  margin-bottom: 4vmin;
+}
+.mode-text__headline {
+  font-size: clamp(2rem, 8vmin, 6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  margin: 0 0 2vmin;
+  color: var(--os-text);
+}
+.mode-text__subtext {
+  font-size: clamp(1rem, 3.2vmin, 2rem);
+  font-weight: 400;
+  color: var(--os-muted);
+  margin: 0;
+}
+
+/* Mode: Images — single or slideshow, both full-bleed */
+.mode-images {
+  text-align: center;
+  padding: 6vmin;
+}
+.mode-images__hint {
+  font-size: clamp(1rem, 3vmin, 1.8rem);
+  color: var(--os-muted);
+  line-height: 1.6;
+}
+.mode-images--full {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+}
+.mode-images__img {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  display: block;
+}
+
+/* Mode: Stand By — black standby screen (overrides the theme bg) */
+.mode-stop {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5vmin;
+}
+.mode-stop__status {
+  margin: 0;
+  font-size: clamp(1rem, 3vmin, 1.8rem);
+  color: #777;
+}
+.mode-stop__status--up {
+  color: #5fb87a;
+}
+.mode-stop__status--down {
+  color: #d06363;
+}
+.mode-stop__off {
+  margin: 0;
+  font-size: clamp(0.85rem, 2.2vmin, 1.3rem);
+  color: #555;
+  letter-spacing: 0.04em;
+}
+
+/* ── Widgets — glass overlay on top of any mode ───────────────────────── */
+.widget-layer {
+  position: fixed;
+  inset: 4vmin;
+  pointer-events: none;
+}
+.widget-slot {
+  position: absolute;
+}
+.widget-slot.pos-top-left {
+  top: 4vmin;
+  left: 4vmin;
+}
+.widget-slot.pos-top-right {
+  top: 4vmin;
+  right: 4vmin;
+}
+.widget-slot.pos-bottom-left {
+  bottom: 4vmin;
+  left: 4vmin;
+}
+.widget-slot.pos-bottom-right {
+  bottom: 4vmin;
+  right: 4vmin;
+}
+.widget-slot.pos-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* The frosted-glass card */
+.glass {
+  /* Blur, radius and shadow are in vmin like everything else in a widget, so the
+     card keeps the same proportions on any screen. The hairline border stays 1px
+     on purpose. @decision:gold 2026-09-23 — 1.1vmin, picked by eye from a flat
+     side-by-side test page (Blink and WebKit render it the same there). */
+  background: rgba(255, 255, 255, 0.08);
+  /* ORDER MATTERS: the standard property must be written LAST. Vite's CSS minifier
+     (Lightning CSS) collapses this pair to whichever comes last, and Chromium
+     ignores the -webkit- spelling, so standard-first shipped NO blur in
+     Chrome/Opera while WebKit still frosted. A test page in public/ never showed
+     it, because public/ is copied unminified. The build guard in vite.config.ts
+     now fails the build if it recurs. */
+  -webkit-backdrop-filter: blur(1.1vmin) saturate(1.3);
+  backdrop-filter: blur(1.1vmin) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 1.5vmin;
+  box-shadow:
+    0 0.55vmin 2.8vmin rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.widget {
+  padding: clamp(14px, 2.4vmin, 26px) clamp(20px, 3.4vmin, 40px);
+  text-align: center;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Clock */
+.widget-clock__time {
+  font-size: clamp(2.4rem, 7vmin, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.widget-clock__date {
+  font-size: clamp(0.85rem, 1.9vmin, 1.4rem);
+  font-weight: 400;
+  opacity: 0.88;
+  margin-top: 0.6vmin;
+}
+
+/* Calendar */
+.widget-calendar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2vmin;
+}
+.widget-calendar__monthyear {
+  font-size: clamp(0.85rem, 1.9vmin, 1.4rem);
+  font-weight: 600;
+  opacity: 0.9;
+}
+.widget-calendar__day {
+  font-size: clamp(2.8rem, 8vmin, 6rem);
+  font-weight: 800;
+  line-height: 1;
+}
+.widget-calendar__weekday {
+  font-size: clamp(0.85rem, 1.9vmin, 1.4rem);
+  font-weight: 400;
+  opacity: 0.82;
+  letter-spacing: 0.08em;
+}
+
+/* Countdown */
+.widget-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4vmin;
+}
+.widget-countdown__label {
+  font-size: clamp(0.8rem, 1.7vmin, 1.3rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  text-align: center;
+}
+.widget-countdown__time {
+  font-size: clamp(2.4rem, 7vmin, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* Blink the 0:00 during its 30s grace, before the widget auto-removes. */
+@keyframes os-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.2;
+  }
+}
+.widget-countdown__time--flash {
+  animation: os-blink 1s infinite;
+}
+
+/* Giving (QR) */
+.widget-giving {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vmin;
+}
+.widget-giving__label {
+  font-size: clamp(0.8rem, 1.7vmin, 1.3rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  text-align: center;
+}
+.widget-giving__qr {
+  width: clamp(90px, 16vmin, 200px);
+  height: clamp(90px, 16vmin, 200px);
+  object-fit: contain;
+  background: #fff;
+  padding: 1.4vmin;
+  border-radius: 10px;
+}
+
+
+/* Verse of the day. Sized in vmin like the other widgets so it scales with the
+   screen; max-width keeps lines readable instead of stretching across a wall,
+   and it wraps happily on a portrait display. */
+.widget-verse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2vmin;
+  /* NOTE: the size control applies a CSS scale(), which multiplies this width
+     too — so the base must be small enough that XL (x2.5) still fits on screen.
+     30vmin gives 24/30/45/75vmin for S/M/L/XL. Fixed, not max-width, so the card
+     is the same size whatever the day's verse (see useFitText in Widgets.tsx). */
+  width: 30vmin;
+  text-align: center;
+}
+/* Text box: useFitText caps its height at the probe's and then sizes it to the
+   fitted text, so it never leaves empty space. The verse shrinks via --fit. */
+.widget-verse__box {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+.widget-verse__probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  visibility: hidden;
+  --fit: 1;
+}
+.widget-verse__text {
+  font-size: calc(clamp(0.95rem, 2.4vmin, 2rem) * var(--fit, 1));
+  font-weight: 500;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+.widget-verse__ref {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8vmin;
+  font-size: clamp(0.75rem, 1.6vmin, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.widget-verse__version {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+}
+

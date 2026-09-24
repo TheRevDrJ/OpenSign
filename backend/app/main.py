@@ -1,0 +1,190 @@
+"""OpenSign backend — FastAPI on host 0.0.0.0 so /admin is reachable from any
+device on the LAN. Serves images IN PLACE from wherever they live on disk (no
+uploading/copying). The picker is a native OS dialog opened on the display
+machine, which hands back a real filesystem path. Serves the built frontend on a
+single port in production; PyInstaller bundles this into a standalone .exe."""
+
+import json
+import time
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from . import bible, dialogs
+from .config import load_config, save_config
+from .paths import base_dir, ensure_dirs
+
+app = FastAPI(title="OpenSign")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+ensure_dirs()
+
+IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg"}
+
+
+# --- Config (read by kiosk, written by admin) ---
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/api/time")
+def server_time():
+    """The server's clock: epoch milliseconds plus its current UTC offset in
+    minutes. Displays use `now` to keep the slideshow index in lockstep, and
+    `offset` to render the on-screen clock in the SERVER's timezone — so
+    "server time" shows the same wall clock on every display, not each display's
+    own local time."""
+    lt = time.localtime()
+    return {"now": time.time() * 1000, "offset": (lt.tm_gmtoff or 0) // 60}
+
+
+# Displays compare this token on every config poll and reload the page when it
+# changes: the admin "Reload displays" button bumps it, and a server restart
+# (e.g. after an update) starts a new one, so displays pick up new code.
+# It rides on the config response but is never saved into config.json.
+RELOAD = {"token": time.time()}
+
+
+@app.get("/api/config")
+def get_config():
+    return {**load_config(), "reloadToken": RELOAD["token"]}
+
+
+@app.post("/api/config")
+async def set_config(cfg: dict):
+    cfg.pop("reloadToken", None)
+    return save_config(cfg)
+
+
+@app.post("/api/reload")
+def reload_displays():
+    RELOAD["token"] = time.time()
+    return {"ok": True}
+
+
+# --- Verse translations via API.Bible (optional; BSB is built in) ---
+
+@app.get("/api/bible/status")
+def bible_status():
+    """Whether a key is saved, and the Bibles it unlocks. The key itself is never
+    returned: config.json and these routes are reachable from every display."""
+    key = bible.get_key()
+    try:
+        bibles = bible.list_bibles(key) if key else []
+        return {"keySet": bool(key), "bibles": bibles, "languages": bible.LANGUAGES, "error": ""}
+    except bible.BibleError as e:
+        return {"keySet": bool(key), "bibles": [], "languages": bible.LANGUAGES, "error": str(e)}
+
+
+@app.post("/api/bible/key")
+def bible_key(body: dict):
+    try:
+        bibles = bible.set_key(str(body.get("key", "")))
+    except bible.BibleError as e:
+        raise HTTPException(400, f"Key not accepted ({e})")
+    return {"keySet": bool(bibles), "bibles": bibles, "languages": bible.LANGUAGES, "error": ""}
+
+
+@app.get("/api/bible/verse")
+def bible_verse(bible_id: str, osis: str, ref: str):
+    try:
+        return bible.get_verse(bible_id, osis, ref)
+    except bible.BibleError as e:
+        raise HTTPException(404, str(e))
+
+
+# --- Serve a local file in place (by absolute path) ---
+
+@app.get("/api/localfile")
+def localfile(path: str):
+    p = Path(path)
+    if not p.is_file():
+        raise HTTPException(404, f"Not a file: {path}")
+    return FileResponse(str(p))
+
+
+# --- List images in a local folder (for Cycle mode) ---
+
+@app.get("/api/folder/list")
+def folder_list(path: str):
+    p = Path(path)
+    if not p.is_dir():
+        raise HTTPException(404, f"Not a folder: {path}")
+    files = sorted(
+        f.name
+        for f in p.iterdir()
+        if f.is_file() and f.suffix.lower() in IMAGE_EXTS
+    )
+    return {"folder": str(p), "files": files}
+
+
+# --- Native pickers (open a dialog on the display machine, return a path) ---
+
+# --- Native OS file/folder pickers (opened on the display machine) ---
+
+@app.get("/api/pick/file")
+def pick_file():
+    return {"path": dialogs.pick_image()}
+
+
+@app.get("/api/pick/folder")
+def pick_folder():
+    return {"path": dialogs.pick_folder()}
+
+
+# --- Save / load the whole config as a named .json layout (native dialogs) ---
+
+@app.post("/api/layout/save")
+def layout_save(cfg: dict):
+    cfg.pop("reloadToken", None)
+    path = dialogs.save_layout()
+    if not path:
+        return {"path": None}
+    Path(path).write_text(
+        json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    return {"path": path}
+
+
+@app.get("/api/layout/load")
+def layout_load():
+    path = dialogs.load_layout()
+    if not path:
+        return {"path": None, "config": None}
+    try:
+        cfg = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(400, f"Not a valid layout file: {e}")
+    return {"path": path, "config": cfg}
+
+
+# --- Serve the built frontend in production (dist may not exist in dev) ---
+
+DIST = base_dir() / "frontend" / "dist"
+if DIST.exists():
+    app.mount("/assets", StaticFiles(directory=str(DIST / "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    def spa(full_path: str):
+        if full_path.startswith(("api/", "assets/")):
+            raise HTTPException(404)
+        candidate = DIST / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(DIST / "index.html")
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=6100)
