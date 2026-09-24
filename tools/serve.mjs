@@ -12,14 +12,14 @@
  * job is saying what is up must not itself need a path.
  *
  * ⛔⛔ THE BENCHES NEVER WRITE. There is no write path to grow one from: triage
- * is a judgment, and filing goes through Bob.
+ * is a judgment, and filing goes through the developer.
  *
  * ⭐ THE TRACKER IS READ OFF DISK ON EVERY REQUEST (/__bugs), and /__bugs-stamp
  * answers "has it changed?" in a few bytes so the page can offer a reload.
  *
  * PORT: 6102 — OpenSign's block is 6100 and 6101 is the optional hot-reload
- * server (../bob/ports.md). Both loopbacks, never the network.
- * CALLED BY: nobody; Bob starts it by hand.
+ * server. Both loopbacks, never the network.
+ * CALLED BY: nobody; the developer starts it by hand.
  */
 
 import { createServer } from 'node:http';

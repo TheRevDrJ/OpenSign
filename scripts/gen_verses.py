@@ -170,7 +170,7 @@ def main():
                 elif ps not in NO_SUPERSCRIPTION:
                     sys.exit(f"{k} is not in SUPERSCRIPTIONS or NO_SUPERSCRIPTION; check it by eye")
             # "Selah" (a musical/liturgical mark, not read aloud) is dropped from
-            # the end of a verse, by his ruling 2026-09-23.
+            # the end of a verse, since the card shows only what is read.
             if t.endswith(" Selah"):
                 t = t[: -len(" Selah")]
             if k in SUBSCRIPTIONS:

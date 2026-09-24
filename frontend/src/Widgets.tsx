@@ -209,7 +209,7 @@ function VerseWidget({
 // full font (measured live, so it holds on any screen). A longer verse shrinks
 // its font until it fits, down to FIT_MIN; then the box hugs the text, so there
 // is no empty space above or below it. gen_verses.py's length cap keeps every
-// verse above that floor. @decision:gold 2026-09-23 — 120 chars fit at XL.
+// verse above that floor. The sample is 120 chars, the most that fits at XL.
 const FIT_SAMPLE =
   'This is a sample line one hundred and twenty characters long, the most a verse may show at full size on the card itself.'
 const FIT_MIN = 0.7
@@ -326,7 +326,7 @@ const WIDGET_NAMES: WidgetName[] = ['clock', 'calendar', 'countdown', 'giving', 
 // edge or centre, so widgets of different heights leave unequal gaps. Sizes are
 // MEASURED (a widget's size is its content times its S/M/L/XL scale, and the
 // verse card changes with the day's verse), then each gets a px offset.
-// @decision:gold 2026-09-23 — option A: ends stay at the edges.
+// The first and last widgets stay against the edges; only the gaps between share out.
 function evenSlotStyle(
   p: { x: number; y: number },
   scale: number,

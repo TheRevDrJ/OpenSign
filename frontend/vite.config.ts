@@ -44,7 +44,7 @@ function requireStandardBackdropFilter(): Plugin {
 }
 
 export default defineConfig({
-  // Some file-sync tools (Dropbox, OneDrive, …) race Vite's rapid dep-cache
+  // Some cloud file-sync tools race Vite's rapid dep-cache
   // rename and throw EBUSY/EPERM. Park the cache OUTSIDE any synced folder — it's
   // regenerable, so losing it only costs a rebuild, never data. LOCALAPPDATA (or
   // the OS temp dir) is a safe, machine-portable spot.

@@ -7,7 +7,7 @@
 <!-- THE TRACKER. `docs/bugs.json` is the one source, read through /__bugs off disk on every
      request by tools/serve.mjs — never copied, so the page cannot go stale in the server.
      ⛔ READ-ONLY, with no write path to grow one from: triage is a judgment, and filing
-     goes through Bob. The look is FirstLight's bench, deliberately — same chrome, same
+     goes through the developer. The look is FirstLight's bench, deliberately — same chrome, same
      status colours, so moving between two trackers costs nothing. -->
 <style>
   @font-face { font-family:'Orbitron'; font-weight:700; src:url('/fonts/orbitron-latin-700-normal.woff2') format('woff2'); font-display:swap; }
@@ -74,7 +74,7 @@
 </head>
 <body>
 <h1>THE&nbsp; TRACKER</h1>
-<p class="sub">docs/bugs.json, live off disk · <b>read-only — bugs go through Bob</b><span class="fresh" id="fresh" onclick="location.reload()">the file changed — reload</span></p>
+<p class="sub">docs/bugs.json, live off disk · <b>read-only — bugs go through the developer</b><span class="fresh" id="fresh" onclick="location.reload()">the file changed — reload</span></p>
 <p class="key"><i>BUG</i> &nbsp;·&nbsp; <i>FEATURE</i> &nbsp;·&nbsp; <i>TOOL</i></p>
 <div class="bar" id="tally"></div>
 <div class="tabs" id="tabs"></div>

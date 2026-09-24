@@ -120,8 +120,8 @@
 .glass {
   /* Blur, radius and shadow are in vmin like everything else in a widget, so the
      card keeps the same proportions on any screen. The hairline border stays 1px
-     on purpose. @decision:gold 2026-09-23 — 1.1vmin, picked by eye from a flat
-     side-by-side test page (Blink and WebKit render it the same there). */
+     on purpose. The blur is 1.1vmin, picked by eye from a flat side-by-side
+     test page (Blink and WebKit render it the same there). */
   background: rgba(255, 255, 255, 0.08);
   /* ORDER MATTERS: the standard property must be written LAST. Vite's CSS minifier
      (Lightning CSS) collapses this pair to whichever comes last, and Chromium

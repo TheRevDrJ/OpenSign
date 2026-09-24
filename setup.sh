@@ -96,7 +96,7 @@ echo "  [OK] Backend ready."
 echo
 echo "  Installing frontend dependencies (npm install --ignore-scripts) ..."
 ( cd frontend && npm install --ignore-scripts )
-# A file-synced node_modules (Dropbox/OneDrive) carried over from Windows lands
+# A node_modules synced by a cloud file-sync tool from Windows lands
 # here without the +x bit on its .bin shims, and npm won't rewrite perms on
 # files it considers already installed — so `npm run dev` dies with "vite:
 # Permission denied". Restore the executable bit. No-op on a clean install.
